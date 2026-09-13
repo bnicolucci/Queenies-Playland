@@ -1,0 +1,21 @@
+node_modules/
+.DS_Store
+# ordinary `bun run build` output (the entry zip uses dist13k/ below)
+/dist/
+# js13k build output (bun run pack regenerates it, game.zip included)
+dist13k/
+# reference material only (prior TS project this was ported from), local-only
+wip/
+# blender test scratch (bun run test:blender uses a temp dir; this is the fallback)
+tools/blender/tests/.out/
+__pycache__/
+# src/assets is a junction to picoCAD2's own asset folder (%APPDATA%\picocad2\
+# assets), so everything the app saves there lands inside the working tree.
+# Only the shipped model belongs to the repo; any other model made in picoCAD2
+# is local scratch, and without this `git add -A` would commit it by accident.
+/src/assets/*
+!/src/assets/model.txt
+# dev-server logs (`bun run dev` redirected to a file); local scratch only
+/.vite-dev.*.log
+# `bun run breakdown` scratch build (deleted on exit; here in case a run is killed)
+dist13k-size/

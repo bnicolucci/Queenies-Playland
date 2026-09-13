@@ -1,0 +1,20 @@
+{
+    // Editor-only: nothing in the build reads this. `bun run pack` and
+    // `bun run build` never type-check — bun runs the .ts tools directly and
+    // vite strips types with esbuild. This exists so VS Code knows the tools
+    // are bun scripts (node: imports, process, console) instead of underlining
+    // every one of them.
+    "compilerOptions": {
+        "target": "ESNext",
+        "lib": ["ESNext", "DOM"],
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "types": ["bun"],
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "noEmit": true
+    },
+    "include": ["*.ts", "tools/**/*.ts"]
+}

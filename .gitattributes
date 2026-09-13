@@ -1,0 +1,12 @@
+# LF everywhere, on every platform.
+#
+# core.autocrlf is true on this machine, so without this a fresh clone checks
+# these files out as CRLF. That matters here more than in most repos: the
+# Blender addon and the web Entity editor both regex-replace a block inside
+# src/entities.js and write the file back, and the test suite asserts the
+# round-trip is BYTE-identical. Both writers emit LF, so a CRLF checkout would
+# turn every save into a whole-file diff and could fail smoke_roundtrip.
+#
+# The index is already all-LF, so this pins current behaviour rather than
+# changing it.
+* text=auto eol=lf
