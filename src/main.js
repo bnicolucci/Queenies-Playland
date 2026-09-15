@@ -22,12 +22,12 @@ const DEBUG = false;
 const MOUTH_ROT = [0, 0, 0];
 const carnyFace = eyes => [-1, [[3, 0, MOUTH_ROT, 0],
   ...(eyes < 0 ? [] : EYE_COMPLEX.s[eyes][1].flatMap(([k, ...v]) => [[10 + k, ...v], [18 + k, ...v]]))]];
-const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carnyFace(1), CARNY_SURPRISED = carnyFace(2);
+const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carnyFace(1);
 // timeline() steps: [state, ms to get there, ms to hold]. Blink repeats;
 // the other two play once from their trigger and park on the last state.
 const EYES_BLINK = [[CARNY_SHUT, 80, 60], [CARNY_CALM, 120, 3300]];
-const EYES_SHOT = [[CARNY_SURPRISED, 60, 340], [CARNY_CALM, 200, 0]], EYES_SHOT_MS = 600;
-const EYES_ANGRY = [[CARNY_ANGRY, 200, 1e9]];
+const EYES_SHOT = [[CARNY_ANGRY, 60, 340], [CARNY_CALM, 200, 0]], EYES_SHOT_MS = 600;
+const EYES_LAUGH = [[CARNY_ANGRY, 200, 1500], [CARNY_SHUT, 150, 1e9]];
 
 const WHEEL_PIVOT = 17;
 const WHEEL_SELECT = 16;
@@ -617,7 +617,7 @@ requestAnimationFrame(function loop(now) {
       : now - gaspAt < 2 * GASP_MS ? A.tween(now, GASP_MS, 0, GASP_DEG, A.ease_out_quad, A.cycle, gaspAt) : 0;
     if (lost && now - lost > SLIDE_MS + LOSE_MS) goStage(0);
     poseState(carnyParts, CARNY, ...(
-      laughing ? A.timeline(now, CARNY_CALM, EYES_ANGRY, A.once, lost + SLIDE_MS)
+      laughing ? A.timeline(now, CARNY_CALM, EYES_LAUGH, A.once, lost + SLIDE_MS)
       : now - gaspAt < EYES_SHOT_MS ? A.timeline(now, CARNY_CALM, EYES_SHOT, A.once, gaspAt)
       : A.timeline(now, CARNY_CALM, EYES_BLINK)));
   }
