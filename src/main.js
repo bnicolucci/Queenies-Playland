@@ -35,7 +35,9 @@ const EYES_LAUGH = [[CARNY_SHUT, 150, 1e9]];
 // On the wheel stage, YAWN_AFTER ms without a click starts a yawn, and
 // another every YAWN_EVERY while nobody clicks. The sound is the carny's
 // usual one stretched to YAWN_SECONDS, which also drops its pitch.
-const YAWN = [[CARNY_YAWN, 400, 800], [CARNY_CALM, 400, 0]], YAWN_MS = 1600;
+// Each step is [state, ms to get there, ms to hold, ease]: a slow stretch
+// open, a hold, then a quicker snap shut.
+const YAWN = [[CARNY_YAWN, 500, 700, A.ease_in_out_sine], [CARNY_CALM, 400, 0, A.ease_in_quad]], YAWN_MS = 1600;
 const YAWN_AFTER = 2000, YAWN_EVERY = 5000, YAWN_SECONDS = 1.2;
 let yawnAt = 0;
 
