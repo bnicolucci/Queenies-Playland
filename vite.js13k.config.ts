@@ -46,16 +46,21 @@ const MANGLE_PROPS = new RegExp('^(' + [
 ].join('|') + ')$');
 
 // DECIMALS KEPT in the Blender-exported numbers (entities.js, stages.js), see
-// tools/vite/data_round.ts. Measured on the 12-frame runtime verifier against
-// the full-precision package (pixels differing per 405x540 frame):
-//   3 decimals  -246 zip bytes   60..650 px    sub-pixel shimmer, invisible
-//   2 decimals  -572 zip bytes   ~2,700 px     still indistinguishable by eye
-//   1 decimal   -928 zip bytes   ~18-24k px    the prize wheel visibly turns,
-//                                              hub face breaks -- too coarse
-const DATA_DIGITS = 2;
+// tools/vite/data_round.ts: DATA_DIGITS for ordinary values, DATA_FINE for
+// values under 1 and for exact quarters (1.25, 0.75). Measured on the 12-frame
+// runtime verifier (pixels differing per 405x540 frame; ~3k is sub-pixel
+// shimmer, the level the 2-decimal build itself sits at against 4 decimals):
+//   4 decimals everywhere                    (reference)
+//   3 everywhere        -246 zip bytes    60..650 px     invisible
+//   2 everywhere        -572              ~2,700 px      indistinguishable
+//   1 everywhere        -930              ~18-24k px     eyes sink into heads,
+//                                                        wheel rises 6 px
+//   1, small values 2   -703              wheel still rises: 1.25 -> 1.3
+//   1, small+quarters 2 -679              ~2,500-3,600 px  <- pinned
+const DATA_DIGITS = 1, DATA_FINE = 2;
 
 export default defineConfig({
-    plugins: [glslMin(), picocadCompact(), dataRound(DATA_DIGITS)],
+    plugins: [glslMin(), picocadCompact(), dataRound(DATA_DIGITS, DATA_FINE)],
     build: {
         outDir: 'dist13k',
         emptyOutDir: true,

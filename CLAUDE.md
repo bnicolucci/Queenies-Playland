@@ -105,10 +105,12 @@ report. Dev serves everything raw, so dev and pack can never disagree about a fo
   header comment for the measurement). Positions round at 1e8, not less — scale
   amplifies vertex error.
 - **`tools/vite/data_round.ts`** — rounds the Blender-exported numbers in `entities.js`
-  / `stages.js` to `DATA_DIGITS` (2) decimals at build time; the authored files keep
-  all four. The ladder is measured in the config comment: 2 decimals is −572 zip bytes
-  and invisible, 1 decimal is another −356 but visibly turns the prize wheel. Because
-  the pack rounds and dev doesn't, `verify_runtime.ts`'s *dev vs packed* comparison is
+  / `stages.js` at build time: 1 decimal for ordinary values, 2 for values under 1 and
+  for exact quarters like `1.25` (`DATA_DIGITS` / `DATA_FINE`); the authored files keep
+  all four. The ladder is measured in the config comment — the two exceptions are what
+  make 1 decimal safe: small offsets under a big parent scale sink eyes into heads, and
+  hand-authored quarters round the wrong way (the wheel pivot's `1.25` → `1.3` lifted
+  the whole wheel 6 px). Because the pack rounds and dev doesn't, `verify_runtime.ts`'s *dev vs packed* comparison is
   expected to report a couple of thousand shimmering pixels per frame — compare against
   a saved package instead when checking a pipeline change.
 - **Terser with a property-mangling whitelist** (`MANGLE_PROPS` in
