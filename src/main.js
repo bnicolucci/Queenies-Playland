@@ -184,6 +184,11 @@ const TIMER_S = 30, TIMER_FIT = 20;
 let timer, stageAt = 0;
 const SLIDE_MS = 1000, LOSE_MS = 2500;
 let carny, carnyTo, lost = 0;
+// A drop landing on the carny makes him gasp: the mouth pivot opens and
+// closes once over 2 * GASP_MS. Not retriggered mid-gasp, so a sustained
+// spray reads as repeated gasps rather than a mouth held half open.
+const GASP_MS = 150, GASP_DEG = -8;
+let gaspAt = -1e9;
 const drawTimer = now => {
   const toHud = (x, y, z) => {
     const p = projView.transformPoint(timer.place.transformPoint(new DOMPoint(x, y, z)));
@@ -228,7 +233,11 @@ const drawGun = now => {
     const p = [d[1] + d[4] * age, d[2] + d[5] * age - GRAVITY * age * age / 2, d[3] + d[6] * age];
     if (now - hitAt > HIT_GRACE)
       for (const o of objects)
-        if (o.t === 'target' && p.every((v, k) => v >= o.min[k] && v <= o.max[k])) { splash(o, now); d[0] = -1e9; break; }
+        if ((o.t === 'target' || o === carny) && p.every((v, k) => v >= o.min[k] && v <= o.max[k])) {
+          if (o !== carny) splash(o, now);
+          else if (now - gaspAt > 2 * GASP_MS) gaspAt = now;
+          d[0] = -1e9; break;
+        }
     if (d[0] < 0) continue;
     const s = DROP_SIZE * (0.6 + hash(d[0]) * 0.8);
     E.draw(MESH.mesh_cube, new DOMMatrix().translate(...p).scale(s, s, s), hash(d[0] + 5) < 0.15 ? 1 : 10);
@@ -586,7 +595,8 @@ requestAnimationFrame(function loop(now) {
   const carnyParts = spawned.get(CARNY);
   if (carnyParts) {
     MOUTH_ROT[0] = lost && now - lost > SLIDE_MS ? A.tween(now, 300, 0, -20,
-      import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle) : 0;
+      import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle)
+      : now - gaspAt < 2 * GASP_MS ? A.tween(now, GASP_MS, 0, GASP_DEG, A.ease_out_quad, A.cycle, gaspAt) : 0;
     if (lost && now - lost > SLIDE_MS + LOSE_MS) goStage(0);
     poseState(carnyParts, CARNY, MOUTH_STATE);
   }
