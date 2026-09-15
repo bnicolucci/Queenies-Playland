@@ -104,6 +104,13 @@ report. Dev serves everything raw, so dev and pack can never disagree about a fo
   (`pc2!` prefix). Texture pixels are deliberately left as one hex digit each (see the
   header comment for the measurement). Positions round at 1e8, not less — scale
   amplifies vertex error.
+- **`tools/vite/data_round.ts`** — rounds the Blender-exported numbers in `entities.js`
+  / `stages.js` to `DATA_DIGITS` (2) decimals at build time; the authored files keep
+  all four. The ladder is measured in the config comment: 2 decimals is −572 zip bytes
+  and invisible, 1 decimal is another −356 but visibly turns the prize wheel. Because
+  the pack rounds and dev doesn't, `verify_runtime.ts`'s *dev vs packed* comparison is
+  expected to report a couple of thousand shimmering pixels per frame — compare against
+  a saved package instead when checking a pipeline change.
 - **Terser with a property-mangling whitelist** (`MANGLE_PROPS` in
   `vite.js13k.config.ts`). The pack minifies with Terser rather than esbuild (that swap
   alone was −202 zip bytes) and renames the property names listed in `MANGLE_PROPS`
@@ -142,9 +149,10 @@ report. Dev serves everything raw, so dev and pack can never disagree about a fo
 - **Verify any change to the pack pipeline against a saved package.** Copy
   `dist13k/index.html` somewhere before the change, then after it run
   `bun tools/js13k/verify_runtime.ts <that file>` — it drives both in headless Chrome
-  and diffs frames pixel-for-pixel (expect `12/12 identical frames` for both `baseline`
-  and `dev`). A wrong mangle throws no error; it just draws the wrong thing, and this is
-  what catches it. (Its final "picking after resize" section tests the dev server, not
+  and diffs frames pixel-for-pixel. Expect `12/12 identical frames` against the saved
+  package for a change that shouldn't alter output (the `dev` row differs slightly by
+  design — see `data_round.ts`). A wrong mangle throws no error; it just draws the wrong
+  thing, and this is what catches it. (Its final "picking after resize" section tests the dev server, not
   the package, and currently fails independently of the pack.)
 - New entities, stages, easings and sounds: **one `export const` each**, imported only
   where used, so unused ones tree-shake. Never merge them into a shared table.

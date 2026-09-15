@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { glslMin } from './tools/vite/glsl_min.ts';
 import { picocadCompact } from './tools/vite/picocad_compact.ts';
+import { dataRound } from './tools/vite/data_round.ts';
 
 // Build config for the js13k package (`bun run pack`). It differs from the
 // normal build in ways that only matter when everything ends up inside one
@@ -44,8 +45,17 @@ const MANGLE_PROPS = new RegExp('^(' + [
     'transparent_color', 'background_color', 'transparentColor', 'bg',
 ].join('|') + ')$');
 
+// DECIMALS KEPT in the Blender-exported numbers (entities.js, stages.js), see
+// tools/vite/data_round.ts. Measured on the 12-frame runtime verifier against
+// the full-precision package (pixels differing per 405x540 frame):
+//   3 decimals  -246 zip bytes   60..650 px    sub-pixel shimmer, invisible
+//   2 decimals  -572 zip bytes   ~2,700 px     still indistinguishable by eye
+//   1 decimal   -928 zip bytes   ~18-24k px    the prize wheel visibly turns,
+//                                              hub face breaks -- too coarse
+const DATA_DIGITS = 2;
+
 export default defineConfig({
-    plugins: [glslMin(), picocadCompact()],
+    plugins: [glslMin(), picocadCompact(), dataRound(DATA_DIGITS)],
     build: {
         outDir: 'dist13k',
         emptyOutDir: true,
