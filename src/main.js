@@ -3,7 +3,7 @@ import * as A from './anim.js';
 import modelTxt from './assets/model.txt?raw';
 import { makeCamera } from './camera.js';
 import { createEngine, perspective } from './engine.js';
-import { CARNY, COLOR_WHEEL, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN, WHACKA, X } from './entities.js';
+import { CARNY, COLOR_WHEEL, EYE_COMPLEX, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN, WHACKA, X } from './entities.js';
 import { drawEntity, poseState, spawnEntity, trs, worldBounds } from './entity.js';
 import { GAME_VIEW } from './game_view.js';
 import { buildPalette, parsePicoCAD } from './pico.js';
@@ -14,7 +14,20 @@ import { COLOR_CHOOSER, INTRO, STAGE_1, STAGE_2 } from './stages.js';
 
 const DEBUG = false;
 
-const MOUTH_ROT = [0, 0, 0], MOUTH_STATE = [-1, [[3, 0, MOUTH_ROT, 0]]];
+// The carny's face is one pose state per expression, each carrying the mouth
+// override (MOUTH_ROT is written per frame) plus one of EYE_COMPLEX's authored
+// eye states re-based onto the carny's two inlined eyes: eye part k lives at
+// CARNY[10 + k] (right) and CARNY[18 + k] (left). The mouth rides in EVERY
+// state so tweening between two of them never drags it back to the blueprint.
+const MOUTH_ROT = [0, 0, 0];
+const carnyFace = eyes => [-1, [[3, 0, MOUTH_ROT, 0],
+  ...(eyes < 0 ? [] : EYE_COMPLEX.s[eyes][1].flatMap(([k, ...v]) => [[10 + k, ...v], [18 + k, ...v]]))]];
+const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carnyFace(1), CARNY_SURPRISED = carnyFace(2);
+// timeline() steps: [state, ms to get there, ms to hold]. Blink repeats;
+// the other two play once from their trigger and park on the last state.
+const EYES_BLINK = [[CARNY_SHUT, 80, 60], [CARNY_CALM, 120, 3300]];
+const EYES_SHOT = [[CARNY_SURPRISED, 60, 340], [CARNY_CALM, 200, 0]], EYES_SHOT_MS = 600;
+const EYES_ANGRY = [[CARNY_ANGRY, 200, 1e9]];
 
 const WHEEL_PIVOT = 17;
 const WHEEL_SELECT = 16;
@@ -603,7 +616,10 @@ requestAnimationFrame(function loop(now) {
       import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle, gaspAt)
       : now - gaspAt < 2 * GASP_MS ? A.tween(now, GASP_MS, 0, GASP_DEG, A.ease_out_quad, A.cycle, gaspAt) : 0;
     if (lost && now - lost > SLIDE_MS + LOSE_MS) goStage(0);
-    poseState(carnyParts, CARNY, MOUTH_STATE);
+    poseState(carnyParts, CARNY, ...(
+      laughing ? A.timeline(now, CARNY_CALM, EYES_ANGRY, A.once, lost + SLIDE_MS)
+      : now - gaspAt < EYES_SHOT_MS ? A.timeline(now, CARNY_CALM, EYES_SHOT, A.once, gaspAt)
+      : A.timeline(now, CARNY_CALM, EYES_BLINK)));
   }
 
   if (wheel) {
