@@ -23,8 +23,13 @@ export const makeCamera = o => ({
 
   update(dt) {
     // Shaking the AIM instead of the position keeps the subject on screen and
-    // costs two numbers instead of a vector. 0.01**dt = 99% gone in a second.
-    this.shake *= 0.01 ** dt;
+    // costs two numbers instead of a vector. 0.01**dt = 99% gone in a second,
+    // and SNAPPED to zero under a tenth of a degree (less than a pixel at this
+    // camera): a multiplicative decay never gets there on its own, and any
+    // jitter at all, however far below a pixel, flips the floor in drawTimer's
+    // screen position -- so the timer digits vibrated by a pixel for the rest
+    // of the stage after its first shake.
+    this.shake = this.shake > 0.1 ? this.shake * 0.01 ** dt : 0;
     this.jx = (Math.random() - 0.5) * this.shake;
     this.jy = (Math.random() - 0.5) * this.shake;
   },
