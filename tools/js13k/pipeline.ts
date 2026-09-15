@@ -28,7 +28,7 @@ import { makeZip } from './zip';
 // lands somewhere different every run — four runs here spanned 8,520..8,567
 // real zip bytes around a pinned 8,548 — while all three -O2 runs beat all four
 // -O1 runs. 45 seconds is nothing next to pinning a worse number for months.
-export const TUNED = ['-Zab15', '-Zlr1218', '-Zmc4', '-Zmd32', '-Zpr14', '-S0,1,2,3,7,13,22,49,195,231,336,409'];
+export const TUNED = ['-Zab31', '-Zlr951', '-Zmc4', '-Zmd29', '-Zpr14', '-S0,1,2,3,7,13,21,26,205,348,418,425'];
 
 // Not a tuned parameter, and not part of the search: -D lets Roadroller's
 // decoder keep its state in single-letter globals instead of scoping them,
