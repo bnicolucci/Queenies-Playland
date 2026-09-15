@@ -32,7 +32,7 @@ const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carny
 // frame loop): it starts YAWN_LEAN_DELAY after the mouth, eases in over
 // YAWN_LEAN_IN, holds, and eases back over YAWN_LEAN_OUT, with its own eases.
 const YAWN_MOUTH = -24, YAWN_LEAN = -16;
-const YAWN_LEAN_DELAY = 150, YAWN_LEAN_IN = 500, YAWN_LEAN_HOLD = 700, YAWN_LEAN_OUT = 400;
+const YAWN_LEAN_DELAY = 100, YAWN_LEAN_IN = 500, YAWN_LEAN_HOLD = 650, YAWN_LEAN_OUT = 400;
 const CARNY_YAWN = carnyFace(0, [YAWN_MOUTH, 0, 0]);
 // timeline() steps: [state, ms to get there, ms to hold]. Blink repeats;
 // the other two play once from their trigger and park on the last state.
