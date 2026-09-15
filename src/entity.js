@@ -54,11 +54,14 @@ export function spawnEntity(blueprint, meshByName) {
 // [part index, pos, rot, scale], with 0 standing for an unchanged vector.
 // Missing fields inherit the blueprint. Keeping the result as one TRS lets any
 // non-uniformly scaled part rotate without manufacturing shear.
-// The three TRS fields in `trs` order, each with the identity it falls back to
-// when neither the state nor the blueprint names it. An override is
+// The three TRS fields in `trs` order, each falling back to its identity when
+// neither the state nor the blueprint names it. An override is
 // [partIndex, pos, rot, scale], so field k reads override slot k + 1 -- the one
-// place that offset is spelled out.
-const POSE_FIELDS = [['pos', [0, 0, 0]], ['rot', [0, 0, 0]], ['scale', [1, 1, 1]]];
+// place that offset is spelled out. Read with dot access, never `p['pos']`:
+// the pack renames these keys (MANGLE_PROPS in vite.js13k.config.ts) and a
+// string would go on asking for the old name -- every posed part silently
+// snapped to identity the first time this was a table of strings.
+const poseFields = p => [p.pos || [0, 0, 0], p.rot || [0, 0, 0], p.scale || [1, 1, 1]];
 // Zero's missing indexed properties fall back below without allocating an array.
 const poseDelta = (state, part) => state[1].find(d => d[0] === part) || 0;
 
@@ -67,8 +70,8 @@ const poseDelta = (state, part) => state[1].find(d => d[0] === part) || 0;
 export const poseState = (parts, blueprint, a, b = a, t = 0) => {
   for (let i = 0; i < blueprint.length; i++) {
     const x = poseDelta(a, i), y = poseDelta(b, i), p = blueprint[i];
-    const v = POSE_FIELDS.map(([f, id], k) => {
-      const base = p[f] || id, from = x[k + 1] || base, to = y[k + 1] || base;
+    const v = poseFields(p).map((base, k) => {
+      const from = x[k + 1] || base, to = y[k + 1] || base;
       return from.map((n, j) => mix(n, to[j], t));
     });
     parts[i].local = bakeLocal(parts, p, trs(...v));

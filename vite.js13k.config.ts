@@ -12,6 +12,38 @@ import { picocadCompact } from './tools/vite/picocad_compact.ts';
 //    inlined HTML could not fetch.
 //  - No hashed names: pack.ts looks the entry up by a fixed name.
 //
+// PROPERTY NAMES THE PACK RENAMES. esbuild/Terser rename every local to one
+// letter but leave property names alone, because a property might belong to
+// the browser (gl.bindBuffer, matrix.scale, canvas.width). This is the
+// explicit list of names that are OURS on every object they appear on, so
+// renaming them everywhere is safe. Blueprint keys dominate: `color:` alone
+// appears ~150 times in the bundle.
+//
+// A name goes on this list ONLY if no native object is ever read or called
+// through it anywhere in src/ -- Terser renames every occurrence, and a miss
+// breaks the game at runtime with no build error. Deliberately absent, and
+// why:  scale/translate/rotate (DOMMatrix methods), min/max (Math AND mesh
+// bounds), width/height (canvas), value/start/stop/loop/duration (WebAudio),
+// target (event.target, and TAGS is keyed by the tag STRINGS), name/data
+// (Object.fromEntries keys / typed arrays -- tiny win, not worth the doubt).
+// Quoted strings are never touched, so 'mesh_cube' style lookups and the
+// shader source are safe regardless.
+const MANGLE_PROPS = new RegExp('^(' + [
+    // blueprint parts (entities.js) and spawned parts (entity.js)
+    'mesh', 'pos', 'rot', 'color', 'parent', 'uv', 'local', 'tile', 'rect',
+    // engine mesh records and instancing
+    'inst', 'vao', 'ivbo', 'count', 'palette', 'pixels', 'texture', 'shades', 'objects',
+    'draw', 'flush', 'setPalette', 'setModel',
+    // camera
+    'at', 'yaw', 'pitch', 'dist', 'fov', 'shake', 'jx', 'jy', 'update', 'view',
+    // game objects (main.js)
+    'place', 'parts', 'bounce',
+    // picoCAD parse tree (pico.js decoder builds these; only dev reads the JSON)
+    'graph', 'children', 'visible', 'transform', 'vertices', 'faces', 'vertex_ids',
+    'uvs', 'noshade', 'notex', 'colors', 'shade_pal_1', 'shade_pal_2',
+    'transparent_color', 'background_color', 'transparentColor', 'bg',
+].join('|') + ')$');
+
 export default defineConfig({
     plugins: [glslMin(), picocadCompact()],
     build: {
@@ -22,6 +54,18 @@ export default defineConfig({
         assetsInlineLimit: Number.MAX_SAFE_INTEGER,
         modulePreload: { polyfill: false },
         reportCompressedSize: false,
+        minify: 'terser',
+        terserOptions: {
+            ecma: 2020,
+            compress: { passes: 3, unsafe_arrows: true },
+            mangle: {
+                toplevel: true,
+                properties: {
+                    builtins: true,
+                    regex: MANGLE_PROPS,
+                },
+            },
+        },
         rollupOptions: {
             output: {
                 format: 'iife',

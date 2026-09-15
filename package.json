@@ -17,6 +17,7 @@
     "@gfx/zopfli": "^1.0.15",
     "@types/bun": "^1.4.1",
     "roadroller": "^2.1.0",
+    "terser": "^5.51.2",
     "vite": "^8.2.0"
   }
 }
