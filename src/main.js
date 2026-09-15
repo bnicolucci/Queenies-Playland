@@ -20,14 +20,24 @@ const DEBUG = false;
 // CARNY[10 + k] (right) and CARNY[18 + k] (left). The mouth rides in EVERY
 // state so tweening between two of them never drags it back to the blueprint.
 const MOUTH_ROT = [0, 0, 0];
-const carnyFace = eyes => [-1, [[3, 0, MOUTH_ROT, 0],
+const carnyFace = (eyes, mouth = MOUTH_ROT) => [-1, [[3, 0, mouth, 0],
   ...(eyes < 0 ? [] : EYE_COMPLEX.s[eyes][1].flatMap(([k, ...v]) => [[10 + k, ...v], [18 + k, ...v]]))]];
 const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carnyFace(1);
+// The yawn: eyes shut, mouth wide, and the body root (part 0, which every
+// other part hangs off) tipped back so the whole carny leans.
+const CARNY_YAWN = carnyFace(0, [-24, 0, 0]);
+CARNY_YAWN[1].push([0, 0, [-6, 0, 0], 0]);
 // timeline() steps: [state, ms to get there, ms to hold]. Blink repeats;
 // the other two play once from their trigger and park on the last state.
 const EYES_BLINK = [[CARNY_SHUT, 80, 60], [CARNY_CALM, 120, 3300]];
 const EYES_SHOT = [[CARNY_ANGRY, 60, 340], [CARNY_CALM, 200, 0]], EYES_SHOT_MS = 600;
 const EYES_LAUGH = [[CARNY_SHUT, 150, 1e9]];
+// On the wheel stage, YAWN_AFTER ms without a click starts a yawn, and
+// another every YAWN_EVERY while nobody clicks. The sound is the carny's
+// usual one stretched to YAWN_SECONDS, which also drops its pitch.
+const YAWN = [[CARNY_YAWN, 400, 800], [CARNY_CALM, 400, 0]], YAWN_MS = 1600;
+const YAWN_AFTER = 2000, YAWN_EVERY = 5000, YAWN_SECONDS = 1.2;
+let yawnAt = 0;
 
 const WHEEL_PIVOT = 17;
 const WHEEL_SELECT = 16;
@@ -383,6 +393,7 @@ const loadPlacements = stage => {
   timer = findObject(TIMER); stageAt = 0;
   timer?.parts.forEach((p, i) => i && (p.color = prize));
   carny = findObject(CARNY); lost = 0;
+  yawnAt = performance.now() + YAWN_AFTER - YAWN_EVERY;   // first yawn lands YAWN_AFTER from now
   holes = objects.filter(o => o.e === WHACKA); hits = 0; struckAt.length = 0;
   need = Math.min(need, holes.length || need);
   holeBox = [1, 3].flatMap(k => {
@@ -612,12 +623,14 @@ requestAnimationFrame(function loop(now) {
   if (carnyParts) {
     const laughing = lost && now - lost > SLIDE_MS;
     if (laughing) gasp(now, LAUGH_MS);
+    if (wheel && !wheelHit && now - yawnAt > YAWN_EVERY) { yawnAt = now; playSfx(carnysound, 0, 1, YAWN_SECONDS); }
     MOUTH_ROT[0] = laughing ? A.tween(now, LAUGH_MS, 0, LAUGH_DEG,
       import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle, gaspAt)
       : now - gaspAt < 2 * GASP_MS ? A.tween(now, GASP_MS, 0, GASP_DEG, A.ease_out_quad, A.cycle, gaspAt) : 0;
     if (lost && now - lost > SLIDE_MS + LOSE_MS) goStage(0);
     poseState(carnyParts, CARNY, ...(
       laughing ? A.timeline(now, CARNY_CALM, EYES_LAUGH, A.once, lost + SLIDE_MS)
+      : now - yawnAt < YAWN_MS ? A.timeline(now, CARNY_CALM, YAWN, A.once, yawnAt)
       : now - gaspAt < EYES_SHOT_MS ? A.timeline(now, CARNY_CALM, EYES_SHOT, A.once, gaspAt)
       : A.timeline(now, CARNY_CALM, EYES_BLINK)));
   }
