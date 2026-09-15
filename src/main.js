@@ -413,8 +413,28 @@ if (import.meta.env.DEV) {
     if (e.key === '[') console.log('arc:', ARC -= 1);
     if (e.key === ']') console.log('arc:', ARC += 1);
     if (e.key === 'c') console.log('ease:', EASE = eases[(eases.indexOf(EASE) + 1) % eases.length]);
+    if (e.key === 'p') shot = 1;
   });
 }
+let shot = 0;
+// WebGL buffers are cleared after present (no preserveDrawingBuffer), so the grab
+// must run at the end of the frame while both canvases still hold this frame.
+const saveShot = () => {
+  shot = 0;
+  const out = document.createElement('canvas');
+  out.width = canvas.width; out.height = canvas.height;
+  const c = out.getContext('2d');
+  c.imageSmoothingEnabled = false;
+  c.drawImage(canvas, 0, 0);
+  c.drawImage(hudCanvas, 0, 0, out.width, out.height);
+  out.toBlob(b => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = `queenie-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+};
 const drawTitle = () => {
   const big = Math.max(2, hudW / 70 | 0), small = Math.max(1, big >> 1);
   const line = (txt, s, b, y, r) => {
@@ -644,6 +664,7 @@ requestAnimationFrame(function loop(now) {
   H.flush(new DOMMatrix().translate(-1, 1, 0)
     .scale(2 / hudW, -2 / hudH, 1)
     .translate(cam.jx, cam.jy, 0));
+  if (import.meta.env.DEV && shot) saveShot();
 });
 
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('win')) loadStage(WIN_STAGE);
