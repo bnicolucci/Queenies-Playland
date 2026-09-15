@@ -19,17 +19,21 @@ const DEBUG = false;
 // eye states re-based onto the carny's two inlined eyes: eye part k lives at
 // CARNY[10 + k] (right) and CARNY[18 + k] (left). The mouth rides in EVERY
 // state so tweening between two of them never drags it back to the blueprint.
-const MOUTH_ROT = [0, 0, 0];
-const carnyFace = (eyes, mouth = MOUTH_ROT) => [-1, [[3, 0, mouth, 0],
+// MOUTH_ROT and LEAN_ROT are written per frame and referenced from EVERY
+// state, so a face tween can never drag them back to the blueprint. The
+// lean is on the body root (part 0, which every other part hangs off), so
+// the whole carny tips; negative is back, away from the wheel-stage camera.
+const MOUTH_ROT = [0, 0, 0], LEAN_ROT = [0, 0, 0];
+const carnyFace = (eyes, mouth = MOUTH_ROT) => [-1, [[3, 0, mouth, 0], [0, 0, LEAN_ROT, 0],
   ...(eyes < 0 ? [] : EYE_COMPLEX.s[eyes][1].flatMap(([k, ...v]) => [[10 + k, ...v], [18 + k, ...v]]))]];
 const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carnyFace(1);
-// The yawn: eyes shut, mouth open YAWN_MOUTH degrees, and the body root
-// (part 0, which every other part hangs off) tipped YAWN_LEAN degrees about
-// its X axis so the whole carny leans -- negative is back, away from the
-// wheel-stage camera. Both are degrees; both can be tuned freely.
-const YAWN_MOUTH = -24, YAWN_LEAN = -6;
+// The yawn: eyes shut and mouth open YAWN_MOUTH degrees, on the face
+// timeline below. The lean runs on its own clock (see the carny block in the
+// frame loop): it starts YAWN_LEAN_DELAY after the mouth, eases in over
+// YAWN_LEAN_IN, holds, and eases back over YAWN_LEAN_OUT, with its own eases.
+const YAWN_MOUTH = -24, YAWN_LEAN = -16;
+const YAWN_LEAN_DELAY = 150, YAWN_LEAN_IN = 500, YAWN_LEAN_HOLD = 700, YAWN_LEAN_OUT = 400;
 const CARNY_YAWN = carnyFace(0, [YAWN_MOUTH, 0, 0]);
-CARNY_YAWN[1].push([0, 0, [YAWN_LEAN, 0, 0], 0]);
 // timeline() steps: [state, ms to get there, ms to hold]. Blink repeats;
 // the other two play once from their trigger and park on the last state.
 const EYES_BLINK = [[CARNY_SHUT, 80, 60], [CARNY_CALM, 120, 3300]];
@@ -629,6 +633,12 @@ requestAnimationFrame(function loop(now) {
     const laughing = lost && now - lost > SLIDE_MS;
     if (laughing) gasp(now, LAUGH_MS);
     if (wheel && !wheelHit && now - yawnAt > YAWN_EVERY) { yawnAt = now; playSfx(carnysound, 0, 1, YAWN_SECONDS); }
+    // The lean's own clock, offset from the yawn's. tween's default `once`
+    // mode clamps, so the in-tween holds at YAWN_LEAN by itself.
+    const lean = now - yawnAt - YAWN_LEAN_DELAY;
+    LEAN_ROT[0] = lean < 0 || lean > YAWN_LEAN_IN + YAWN_LEAN_HOLD + YAWN_LEAN_OUT ? 0
+      : lean < YAWN_LEAN_IN + YAWN_LEAN_HOLD ? A.tween(lean, YAWN_LEAN_IN, 0, YAWN_LEAN, A.ease_in_out_sine)
+      : A.tween(lean - YAWN_LEAN_IN - YAWN_LEAN_HOLD, YAWN_LEAN_OUT, YAWN_LEAN, 0, A.ease_in_quad);
     MOUTH_ROT[0] = laughing ? A.tween(now, LAUGH_MS, 0, LAUGH_DEG,
       import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle, gaspAt)
       : now - gaspAt < 2 * GASP_MS ? A.tween(now, GASP_MS, 0, GASP_DEG, A.ease_out_quad, A.cycle, gaspAt) : 0;
