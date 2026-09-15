@@ -23,10 +23,13 @@ const MOUTH_ROT = [0, 0, 0];
 const carnyFace = (eyes, mouth = MOUTH_ROT) => [-1, [[3, 0, mouth, 0],
   ...(eyes < 0 ? [] : EYE_COMPLEX.s[eyes][1].flatMap(([k, ...v]) => [[10 + k, ...v], [18 + k, ...v]]))]];
 const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carnyFace(1);
-// The yawn: eyes shut, mouth wide, and the body root (part 0, which every
-// other part hangs off) tipped back so the whole carny leans.
-const CARNY_YAWN = carnyFace(0, [-24, 0, 0]);
-CARNY_YAWN[1].push([0, 0, [-6, 0, 0], 0]);
+// The yawn: eyes shut, mouth open YAWN_MOUTH degrees, and the body root
+// (part 0, which every other part hangs off) tipped YAWN_LEAN degrees about
+// its X axis so the whole carny leans -- negative is back, away from the
+// wheel-stage camera. Both are degrees; both can be tuned freely.
+const YAWN_MOUTH = -24, YAWN_LEAN = -6;
+const CARNY_YAWN = carnyFace(0, [YAWN_MOUTH, 0, 0]);
+CARNY_YAWN[1].push([0, 0, [YAWN_LEAN, 0, 0], 0]);
 // timeline() steps: [state, ms to get there, ms to hold]. Blink repeats;
 // the other two play once from their trigger and park on the last state.
 const EYES_BLINK = [[CARNY_SHUT, 80, 60], [CARNY_CALM, 120, 3300]];
