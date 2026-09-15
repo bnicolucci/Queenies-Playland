@@ -27,7 +27,7 @@ const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carny
 // the other two play once from their trigger and park on the last state.
 const EYES_BLINK = [[CARNY_SHUT, 80, 60], [CARNY_CALM, 120, 3300]];
 const EYES_SHOT = [[CARNY_ANGRY, 60, 340], [CARNY_CALM, 200, 0]], EYES_SHOT_MS = 600;
-const EYES_LAUGH = [[CARNY_ANGRY, 200, 1500], [CARNY_SHUT, 150, 1e9]];
+const EYES_LAUGH = [[CARNY_SHUT, 150, 1e9]];
 
 const WHEEL_PIVOT = 17;
 const WHEEL_SELECT = 16;
