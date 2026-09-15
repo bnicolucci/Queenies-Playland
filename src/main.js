@@ -1,5 +1,6 @@
 
 import * as A from './anim.js';
+import modelTxt from './assets/model.txt?raw';
 import { makeCamera } from './camera.js';
 import { createEngine, perspective } from './engine.js';
 import { CARNY, COLOR_WHEEL, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN, WHACKA, X } from './entities.js';
@@ -7,10 +8,9 @@ import { drawEntity, poseState, spawnEntity, trs, worldBounds } from './entity.j
 import { GAME_VIEW } from './game_view.js';
 import { buildPalette, parsePicoCAD } from './pico.js';
 import { bounce_lite, playSfx, SOUNDS, stopSfx, water_spray, whack, wheel_rotate } from './sfx.js';
-import { COLOR_CHOOSER, INTRO, STAGE_1, STAGE_2 } from './stages.js';
-import modelTxt from './assets/model.txt?raw';
 import frag from './shaders/model.frag?raw';
 import vert from './shaders/model.vert?raw';
+import { COLOR_CHOOSER, INTRO, STAGE_1, STAGE_2 } from './stages.js';
 
 const DEBUG = false;
 
@@ -187,7 +187,7 @@ let carny, carnyTo, lost = 0;
 // A drop landing on the carny makes him gasp: the mouth pivot opens and
 // closes once over 2 * GASP_MS. Not retriggered mid-gasp, so a sustained
 // spray reads as repeated gasps rather than a mouth held half open.
-const GASP_MS = 150, GASP_DEG = -8;
+const GASP_MS = 180, GASP_DEG = -16;
 let gaspAt = -1e9;
 const drawTimer = now => {
   const toHud = (x, y, z) => {
