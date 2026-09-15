@@ -7,7 +7,7 @@ import { CARNY, COLOR_WHEEL, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN,
 import { drawEntity, poseState, spawnEntity, trs, worldBounds } from './entity.js';
 import { GAME_VIEW } from './game_view.js';
 import { buildPalette, parsePicoCAD } from './pico.js';
-import { bounce_lite, playSfx, SOUNDS, stopSfx, water_spray, whack, wheel_rotate } from './sfx.js';
+import { bounce_lite, carnysound, playSfx, SOUNDS, stopSfx, water_spray, whack, wheel_rotate } from './sfx.js';
 import frag from './shaders/model.frag?raw';
 import vert from './shaders/model.vert?raw';
 import { COLOR_CHOOSER, INTRO, STAGE_1, STAGE_2 } from './stages.js';
@@ -184,11 +184,14 @@ const TIMER_S = 30, TIMER_FIT = 20;
 let timer, stageAt = 0;
 const SLIDE_MS = 1000, LOSE_MS = 2500;
 let carny, carnyTo, lost = 0;
-// A drop landing on the carny makes him gasp: the mouth pivot opens and
-// closes once over 2 * GASP_MS. Not retriggered mid-gasp, so a sustained
-// spray reads as repeated gasps rather than a mouth held half open.
-const GASP_MS = 180, GASP_DEG = -16;
+// Every opening of the carny's mouth goes through gasp(): a drop landing on
+// him opens the pivot once over 2 * GASP_MS, and the lose laugh is the same
+// thing on a slower LAUGH_MS clock, re-armed every cycle. Not retriggered
+// mid-gasp, so a sustained spray reads as repeated gasps rather than a mouth
+// held half open -- and the sound plays once per opening, never per drop.
+const GASP_MS = 220, GASP_DEG = -16, LAUGH_MS = 300, LAUGH_DEG = -20;
 let gaspAt = -1e9;
+const gasp = (now, ms) => { if (now - gaspAt > 2 * ms) { gaspAt = now; playSfx(carnysound); } };
 const drawTimer = now => {
   const toHud = (x, y, z) => {
     const p = projView.transformPoint(timer.place.transformPoint(new DOMPoint(x, y, z)));
@@ -235,7 +238,7 @@ const drawGun = now => {
       for (const o of objects)
         if ((o.t === 'target' || o === carny) && p.every((v, k) => v >= o.min[k] && v <= o.max[k])) {
           if (o !== carny) splash(o, now);
-          else if (now - gaspAt > 2 * GASP_MS) gaspAt = now;
+          else gasp(now, GASP_MS);
           d[0] = -1e9; break;
         }
     if (d[0] < 0) continue;
@@ -594,8 +597,10 @@ requestAnimationFrame(function loop(now) {
 
   const carnyParts = spawned.get(CARNY);
   if (carnyParts) {
-    MOUTH_ROT[0] = lost && now - lost > SLIDE_MS ? A.tween(now, 300, 0, -20,
-      import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle)
+    const laughing = lost && now - lost > SLIDE_MS;
+    if (laughing) gasp(now, LAUGH_MS);
+    MOUTH_ROT[0] = laughing ? A.tween(now, LAUGH_MS, 0, LAUGH_DEG,
+      import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle, gaspAt)
       : now - gaspAt < 2 * GASP_MS ? A.tween(now, GASP_MS, 0, GASP_DEG, A.ease_out_quad, A.cycle, gaspAt) : 0;
     if (lost && now - lost > SLIDE_MS + LOSE_MS) goStage(0);
     poseState(carnyParts, CARNY, MOUTH_STATE);
