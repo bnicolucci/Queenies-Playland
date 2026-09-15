@@ -16,7 +16,7 @@
 // main.js's loadStage is what reads all this — it bakes p/r/s with entity.js's
 // `trs`, the same composition a blueprint part gets.
 
-import { ARROW, CARNY, COLOR_WHEEL, CUBE, MALLET, MARK, MOLE, RAINBOW, STAR, TARGET_1, TIMER, UNICORN, WATERGUN, WHACKA } from './entities.js';
+import { CARNY, COLOR_WHEEL, CUBE, MALLET, MARK, MOLE, RAINBOW, STAR, TARGET_1, TIMER, UNICORN, WATERGUN, WHACKA } from './entities.js';
 
 export const INTRO = [
   { e: UNICORN, p: [0, -1.3, 0], r: [14.8335, -16.8271, -7.6778], s: [3.9835, 3.9835, 3.9835] },
@@ -58,8 +58,6 @@ export const STAGE_1 = [
   { e: RAINBOW, p: [0.0537, 1.6489, 10.5596], r: [180, 0, 0], s: [0.1146, 0.1146, 0.0252] },
   { e: RAINBOW, p: [2.8733, 1.6927, 10.5596], r: [180, 0, -0.0655], s: [0.1146, 0.1146, 0.0252] },
   { e: WATERGUN, p: [0, 2.4074, 11.2722], r: [0, 180, 0], s: [2.3539, 2.3539, 2.3539] },
-  { e: ARROW, p: [1.4488, 3.1645, 9.8972], r: [48.6158, -4.8075, -61.3523], s: [0.6201, 0.6201, 0.6201] },
-  { e: ARROW, p: [-1.4488, 3.1645, 9.8972], r: [52.9822, 11.7181, 51.1676], s: [0.6201, 0.6201, 0.6201] },
   { e: CUBE, p: [0, 0, 3.5841], r: [-2.4768, 0, 0], s: [13.4847, 0.3, 14.7353], c: 13 },
   { e: TIMER, p: [0, 9.7303, -1.9786], r: [90, 0, 0] },
   { e: MARK, p: [0.1453, 1.6372, 8.2001], r: [-4.3504, 0.5787, 7.5623] },

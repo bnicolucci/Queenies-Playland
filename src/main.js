@@ -2,7 +2,7 @@
 import * as A from './anim.js';
 import { makeCamera } from './camera.js';
 import { createEngine, perspective } from './engine.js';
-import { ARROW, CARNY, COLOR_WHEEL, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN, WHACKA, X } from './entities.js';
+import { CARNY, COLOR_WHEEL, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN, WHACKA, X } from './entities.js';
 import { drawEntity, poseState, spawnEntity, trs, worldBounds } from './entity.js';
 import { GAME_VIEW } from './game_view.js';
 import { buildPalette, parsePicoCAD } from './pico.js';
@@ -620,7 +620,9 @@ requestAnimationFrame(function loop(now) {
   if (gun) drawGun(now);
   if (holes.length && aim) drawWhack(now);
   for (const o of objects) {
-    if (o.e === ARROW && (held || lost || now / 400 & 1)) continue;
+    // The gun flashes green until it is picked up: the one thing on this
+    // stage the player has to find first.
+    const color = o === gun && !held && !lost && now / 400 & 1 ? 8 + EMISSIVE : o.color;
     if (title && o.e === UNICORN) {
       const state = UNICORN.s[title - 1];
       poseState(o.parts, UNICORN, state);
@@ -637,7 +639,7 @@ requestAnimationFrame(function loop(now) {
           A.tween(now, SLIDE_MS, v, carnyTo[i], A.ease_in_out_quad, A.once, lost)))
       : title && o.e === STAR ? o.place.rotate(0, spin, 0)
       : o.place.scale(s, s, s);
-    drawEntity(E, o.parts, place, o.color);
+    drawEntity(E, o.parts, place, color);
   }
 
   E.flush(projView);
