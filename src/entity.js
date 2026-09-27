@@ -19,21 +19,14 @@
 
 import { mix } from './anim.js';
 
-// THE definition of translate -> rotate -> scale, in one place. Blueprint
-// parts (partMatrix below), stage PLACEMENTS in main.js and the dev-only
-// Entity editor's gizmo maths all compose through it, so a correction to the
-// order cannot leave one of them silently disagreeing with the others.
+// Shared translate -> rotate -> scale for blueprint parts, poses and stages.
 export const trs = (pos = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1]) =>
   new DOMMatrix().translate(...pos).rotate(...rot).scale(...scale);
-
-// A blueprint part's own fields in that convention. The Entity editor passes
-// only `rot` to get the pure rotation basis.
-export const partMatrix = p => trs(p.pos, p.rot, p.scale);
 
 // A part's ABSOLUTE local matrix: its TRS, composed onto its parent's
 // already-baked local. A state can supply `local`; both bakers still share the
 // parent composition.
-const bakeLocal = (parts, p, local = partMatrix(p)) =>
+const bakeLocal = (parts, p, local = trs(p.pos, p.rot, p.scale)) =>
   p.parent == null ? local : parts[p.parent].local.multiply(local);
 
 export function spawnEntity(blueprint, meshByName) {
@@ -92,10 +85,8 @@ export const drawEntity = (E, parts, world, color = -1, mask = -1) => {
   }
 };
 
-// A spawned entity's world AABB: transform each mesh box's axis intervals,
-// then union them. The game picks
-// clicks against it; the Entity editor frames the preview with it (pass an
-// identity `place`) instead of guessing an entity's size from part positions.
+// A spawned entity's world AABB for picking and water hits: transform each
+// mesh box's axis intervals, then union them.
 export const worldBounds = (parts, place) => {
   const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
   for (const part of parts) {

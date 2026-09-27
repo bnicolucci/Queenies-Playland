@@ -105,11 +105,11 @@ if (pinned) {
     const delta = pinned.zip.length - zip.length;
     console.log('');
     console.log(`  searched ZIP      ${String(zip.length).padStart(7)}   fresh Roadroller search`);
-    console.log(`  pinned ZIP        ${String(pinned.zip.length).padStart(7)}   the TUNED flags already in pack.ts`);
+    console.log(`  pinned ZIP        ${String(pinned.zip.length).padStart(7)}   the TUNED flags already in pipeline.ts`);
     if (delta > 0) {
         console.log(`  the searched flags WIN by ${delta}`);
         if (searchedFlags) {
-            console.log('\n  Replace TUNED in tools/js13k/pack.ts with:');
+            console.log('\n  Replace TUNED in tools/js13k/pipeline.ts with:');
             console.log(`\nconst TUNED = [${searchedFlags.map(flag => `'${flag}'`).join(', ')}];`);
             console.log('\n  Then run: bun run pack');
         } else {

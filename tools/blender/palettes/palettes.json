@@ -1,0 +1,148 @@
+{
+    "palettes": [
+        {
+            "name": "Crayon 16",
+            "author": "Vsigos",
+            "asset_url": "crayon-16-1x.png",
+            "url": "https://lospec.com/palette-list/crayon-16",
+            "shade1":[
+            0,0,1,2,3,4,8,9,9,10,0,10,10,12,15,1
+            ],
+            "shade2":[
+            0,0,0,1,2,2,9,10,10,0,0,0,0,10,1,0
+            ]
+        },{
+            "name": "ENDESGA 16",
+            "author": "ENDESGA",
+            "asset_url": "endesga-16-1x.png",
+            "url": "https://lospec.com/palette-list/endesga-16",
+            "shade1":[
+            1,2,3,3,3,4,5,6,9,10,10,10,11,12,15,10
+            ],
+            "shade2":[
+            2,3,3,3,3,3,4,5,10,10,10,10,10,11,10,10
+            ]
+        },
+       
+        {
+            "name": "Island Joy 16",
+            "author": "Kerrie Lake",
+            "asset_url": "island-joy-16-1x.png",
+            "url": "https://lospec.com/palette-list/island-joy-16",
+            "shade1":[
+            1,2,3,4,4,4,5,6,7,10,11,4,11,12,13,3
+            ],
+            "shade2":[
+            2,3,4,4,4,4,4,5,6,11,4,4,4,11,12,4
+            ]
+        },
+        {
+            "name": "Lost Century",
+            "author": "SurrealEmber",
+            "asset_url": "lost-century-1x.png",
+            "url": "https://lospec.com/palette-list/lost-century",
+            "shade1":[
+            1,2,3,4,4,6,7,7,7,8,11,12,13,13,13,14
+            ],
+            "shade2":[
+            2,3,4,4,4,7,7,7,7,7,12,13,13,13,13,13
+            ]
+        },
+        {
+            "name": "Lush Sunset",
+            "author": "Abdul Zakkar",
+            "asset_url": "lush-sunset-1x.png",
+            "url": "https://lospec.com/palette-list/lush-sunset",
+            "shade1":[
+            0,0,1,2,3,2,5,6,1,8,9,10,0,12,13,14
+            ],
+            "shade2":[
+            0,0,0,1,2,1,2,5,0,1,8,9,0,0,12,13
+            ]
+        },
+        {
+            "name": "NA16",
+            "author": "Nauris",
+            "asset_url": "na16-1x.png",
+            "url": "https://lospec.com/palette-list/na16",
+            "shade1":[
+            1,2,15,2,3,6,7,14,3,11,9,2,13,14,15,15
+            ],
+            "shade2":[
+            2,15,15,15,2,7,14,2,2,2,11,15,14,15,15,15
+            ]
+        },
+        {
+            "name": "PICO-8",
+            "author": "Lexaloffle",
+            "asset_url": "pico-8-1x.png",
+            "url": "https://lospec.com/palette-list/pico-8",
+            "shade1": [
+            0, 0, 1, 1, 2, 3, 3, 2, 6, 7, 4, 5, 6, 10, 10, 12
+            ],
+            "shade2": [
+            0, 0, 0, 0, 1, 1, 1, 1, 3, 2, 2, 3, 3, 4, 4, 6
+            ]
+        },{
+            "name": "Psygnosia",
+            "author": "Arne",
+            "asset_url": "psygnosia-1x.png",
+            "url": "https://lospec.com/palette-list/psygnosia",
+            "shade1":[
+            0,0,1,1,3,4,3,4,5,8,11,2,1,12,13,5
+            ],
+            "shade2":[
+            0,0,0,0,1,2,1,3,3,5,2,1,1,1,12,3
+            ]
+        },{
+            "name": "ST 16 Natural",
+            "author": "Skiller Thomson",
+            "asset_url": "st-16-natural-1x.png",
+            "url": "https://lospec.com/palette-list/st-16-natural",
+            "shade1":[
+            23,31,1,2,5,6,15,6,7,10,31,10,11,14,15,31
+            ],
+            "shade2":[
+            20,31,31,1,6,15,31,15,6,31,31,31,10,15,31,31
+            ]
+        },
+        {
+            "name": "Steam Lords",
+            "author": "Slynyrd",
+            "asset_url": "steam-lords-1x.png",
+            "url": "https://lospec.com/palette-list/steam-lords",
+            "shade1":[
+            8,0,1,2,5,6,7,8,8,8,9,10,11,12,13,14
+            ],
+            "shade2":[
+            8,8,0,1,6,7,8,8,8,8,8,9,10,11,12,13
+            ]
+        },
+        {
+            "name": "Urbex 16",
+            "author": "Rustocrat",
+            "asset_url": "urbex-16-1x.png",
+            "url": "https://lospec.com/palette-list/urbex-16",
+            "shade1":[
+            1,2,3,31,8,6,7,3,9,3,13,10,27,3,13,2
+            ],
+            "shade2":[
+            2,3,31,25,9,7,3,31,3,31,3,13,23,23,3,2
+            ]
+
+        },
+        {
+            "name": "Vanilla Milkshake",
+            "author": "Space Sandwich",
+            "asset_url": "vanilla-milkshake-1x.png",
+            "url": "https://lospec.com/palette-list/vanilla-milkshake",
+            "shade1":[
+            0,0,12,1,1,4,5,4,1,8,9,2,1,12,13,14
+            ],
+            "shade2":[
+            0,0,1,0,0,1,4,1,0,1,8,1,0,1,12,13
+            ]
+
+        }
+    ]
+}

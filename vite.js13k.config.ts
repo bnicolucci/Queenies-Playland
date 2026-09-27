@@ -33,8 +33,8 @@ const MANGLE_PROPS = new RegExp('^(' + [
     // blueprint parts (entities.js) and spawned parts (entity.js)
     'mesh', 'pos', 'rot', 'color', 'parent', 'uv', 'local', 'tile', 'rect',
     // engine mesh records and instancing
-    'inst', 'vao', 'ivbo', 'count', 'palette', 'pixels', 'texture', 'shades', 'objects',
-    'draw', 'flush', 'setPalette', 'setModel',
+    'inst', 'vao', 'ivbo', 'count', 'palette', 'pixels', 'texture', 'objects',
+    'draw', 'flush', 'setModel',
     // camera
     'at', 'yaw', 'pitch', 'dist', 'fov', 'shake', 'jx', 'jy', 'update', 'view',
     // game objects (main.js)

@@ -6,7 +6,7 @@ import { createEngine, perspective } from './engine.js';
 import { CARNY, COLOR_WHEEL, EYE_COMPLEX, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN, WHACKA, X } from './entities.js';
 import { drawEntity, poseState, spawnEntity, trs, worldBounds } from './entity.js';
 import { GAME_VIEW } from './game_view.js';
-import { buildPalette, parsePicoCAD } from './pico.js';
+import { parsePicoCAD, TEX_W } from './pico.js';
 import { bounce_lite, carnysound, playSfx, SOUNDS, stopSfx, water_spray, whack, wheel_rotate } from './sfx.js';
 import frag from './shaders/model.frag?raw';
 import vert from './shaders/model.vert?raw';
@@ -138,7 +138,7 @@ for (let b = 0; b < BANDS.length; b++)
       const v = parseInt(FONT.substr(i * 16 + r * 2, 2), 16);
       for (let c = 0; c < 8; c++)
         if (v >> (7 - c) & 1)
-          model.texture.pixels[(bandY(b) + (i >> 4) * 8 + r) * 128 + (i & 15) * 8 + c] = BANDS[b];
+          model.texture.pixels[(bandY(b) + (i >> 4) * 8 + r) * TEX_W + (i & 15) * 8 + c] = BANDS[b];
     }
 
 const E = createEngine(canvas, vert, frag);
@@ -147,10 +147,11 @@ if (import.meta.env.DEV) window.E = E;
 E.setModel(model);
 H.setModel(model);
 H.gl.disable(H.gl.DEPTH_TEST);
+H.gl.clearColor(0, 0, 0, 0);
 
 const MESH = Object.fromEntries(model.objects.map(o => [o.name, E.mesh(o)]));
 const glyphQuad = (() => {
-  const u1 = 8 / 128, v0 = FONT_Y / 128, v1 = (FONT_Y + 8) / 128;
+  const u1 = 8 / TEX_W, v0 = FONT_Y / TEX_W, v1 = (FONT_Y + 8) / TEX_W;
   const vtx = (x, y, u, v) => [x, y, 0, 0, 0, 1, u, v, 0, 1];
   return H.mesh({ data: new Float32Array([
     ...vtx(0, 0, 0, v0), ...vtx(8, 0, u1, v0), ...vtx(8, 8, u1, v1),
@@ -171,7 +172,7 @@ const drawText = (str, x, y, s = 1, b = HUD, r = 1e9) => {
       .translate(x + w / 2 + r * Math.sin(a), y + 4 * s + r * (1 - Math.cos(a)) - sag, 0)
       .rotate(a * 57.29578)
       .scale(s, s, 1).translate(-4, -4, 0), -1,
-      { rect: [(g & 15) * 8 / 128, (bandY(b) + (g >> 4) * 8) / 128, 8 / 128, 8 / 128] });
+      { rect: [(g & 15) * 8 / TEX_W, (bandY(b) + (g >> 4) * 8) / TEX_W, 8 / TEX_W, 8 / TEX_W] });
   }
 };
 
@@ -366,14 +367,9 @@ const TAGS = {
 
 const spawned = new Map();
 
-const PALETTES = [
-  '',
-  '',
-];
-const mood = p => p ? buildPalette(p.match(/../g).map(h => parseInt(h, 16)), model.shades) : model.palette;
 const STAGES = [COLOR_CHOOSER, STAGE_1, STAGE_2];
-let stageIndex = 0, lastStage = 0, objects = [], radius = 10, swipe = 0, nextStage = -1,
-  palette = model.palette;
+let stageIndex = 0, lastStage = 0, objects = [], swipe = 0, nextStage = -1;
+const radius = 10;
 
 const findObject = blueprint => objects.find(o => o.e === blueprint);
 
@@ -407,7 +403,8 @@ const loadPlacements = stage => {
   need = Math.min(need, holes.length || need);
   holeBox = [1, 3].flatMap(k => {
     const v = holes.map(o => o.place['m4' + k]);
-    return [(Math.min(...v) + Math.max(...v)) / 2, (Math.max(...v) - Math.min(...v)) / 2];
+    const min = Math.min(...v), max = Math.max(...v);
+    return [(min + max) / 2, (max - min) / 2];
   });
   carnyTo = findObject(MARK)?.place.toFloat64Array();
   objects = objects.filter(o => o.e !== MARK && o.e !== MOLE);
@@ -428,7 +425,6 @@ const loadStage = i => {
   title = i === WIN_STAGE ? 2 : 0;
   stageIndex = (i + STAGES.length) % STAGES.length;
   if (!title && stageIndex) lastStage = stageIndex;
-  E.setPalette(palette = mood(PALETTES[stageIndex]));
   loadPlacements(title ? INTRO : STAGES[stageIndex]);
 };
 loadPlacements(INTRO);
@@ -544,8 +540,8 @@ const ray = (x, y) => {
 function pick(e) {
   const [x, y] = pointer(e), [a, dir] = ray(x, y);
 
-  let best = Infinity, hit = -1;
-  objects.forEach((o, i) => {
+  let best = Infinity, hit;
+  for (const o of objects) {
     let t0 = 0, t1 = Infinity;
 
     for (let k = 0; k < 3; k++) {
@@ -560,12 +556,12 @@ function pick(e) {
         t1 = Math.min(t1, tb);
       }
     }
-    if (t0 <= t1 && t0 < best) { best = t0; hit = i; }
-  });
-  if (hit >= 0 && objects[hit] === gun && !lost) { held = 1; grab = [x, y, ...GUN_ROT]; stageAt ||= performance.now(); return; }
-  const act = hit >= 0 && TAGS[objects[hit].t];
+    if (t0 <= t1 && t0 < best) { best = t0; hit = o; }
+  }
+  if (hit && hit === gun && !lost) { held = 1; grab = [x, y, ...GUN_ROT]; stageAt ||= performance.now(); return; }
+  const act = hit && TAGS[hit.t];
   if (act) {
-    const o = objects[hit];
+    const o = hit;
     const wrong = o.t === 'target' && o.color !== prize;
     const feedback = wrong ? TAGS.enemy : act;
     playSfx(SOUNDS[feedback[0]]);
@@ -703,7 +699,6 @@ requestAnimationFrame(function loop(now) {
 
   E.flush(projView);
 
-  H.gl.clearColor(0, 0, 0, 0);
   H.clear();
   if (title) drawTitle();
   if (timer) drawTimer(now);
@@ -720,7 +715,6 @@ requestAnimationFrame(function loop(now) {
   }
 
   if (swipe) drawSwipe(now);
-  H.setPalette(swipe ? model.palette : palette);
 
   H.flush(new DOMMatrix().translate(-1, 1, 0)
     .scale(2 / hudW, -2 / hudH, 1)

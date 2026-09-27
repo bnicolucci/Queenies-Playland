@@ -74,7 +74,7 @@ void main() {
         // what the dither IS. The mod is 0 or 1, so `on` is every other
         // pixel. Widening the modulus here turns the checker into a
         // 45-degree stripe (lines of constant x+y) -- measured, and the
-        // checker won; see Saving future bytes in CLAUDE.md.
+        // checker won.
         bool on = mod(floor(gl_FragCoord.x) + floor(gl_FragCoord.y), 2.0) < 0.5;
         if (lightFactor < 0.4) {
             paletteRow = on ? 1 : 2;

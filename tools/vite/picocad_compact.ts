@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import type { Plugin } from 'vite';
 // The runtime's texture width, imported rather than re-typed: this encoder
 // writes UVs in texels and src/pico.js divides by the same number.
-import { TEX_W } from '../../src/pico.js';
+import { COMPACT_PREFIX, TEX_W } from '../../src/pico.js';
 
 // Build-time model compaction, ported from picocad2-js13k's
 // tools/vite/picocad_compact.ts: any bundled `*.txt?raw` that parses as a
@@ -22,8 +22,6 @@ import { TEX_W } from '../../src/pico.js';
 // texture is long runs of 16 symbols that Roadroller compresses ~30:1, and
 // packing destroys the byte alignment those patterns rely on. Re-measure with
 // `bun run pack` before "optimizing" this.
-
-const PREFIX = 'pc2!';
 
 // 1e8 keeps positions exact to 0.00000001 units. 1e5 was NOT enough, and the
 // reason is that a vertex error is AMPLIFIED by every scale above it: a part
@@ -95,7 +93,7 @@ export function tryEncodeCompact(text: string): string | null {
     if (!d?.texture?.pixels || !d.graph) return null;
     const t = d.texture;
     return (
-        PREFIX +
+        COMPACT_PREFIX +
         JSON.stringify([
             [
                 t.pixels,

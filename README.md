@@ -1,5 +1,15 @@
-This is my first JS13k and I am exhausted from lack of sleep, LOL!
+<img height="240" alt="Queenie's Playland" src="js13k-QueeniesPlayland.jpg" />
 
-I will get a proper read me up soon, with attributions (the SFX Pack, PicoCAD2, Xem's lil Web GL engine, etc)
+A carnival game built in less than 13KB for [JS13K 2026](https://js13kgames.com/2026/). My first entry!!!
 
-[Latest Version](https://myfault.com/queenies-playland/)
+Enjoy a rainbowlicious day at Queenie's, where you can chill, relax and possibly sort out her mole problem.
+
+You can play the ever evolving Director's Cut of the game in a browser [here](https://myfault.com/queenies-playland/) or [here on the JS13K site](https://js13kgames.com/2026/games/queenies-playland).
+
+## Influences
+
+- Primitives were built using [picoCAD2](https://johanpeitz.itch.io/picocad2) by Johan Peitz. Rendering influenced by the shader and look
+- I also learned a ton from hfcRed's [picoCAD2 Web](https://github.com/hfcRed/PicoCAD2-Web/tree/main) project
+- Used my original WebGL2 renderer, but combined tricks from Xem's amazing [W](https://xem.github.io/W/) micro WebGL2 framework
+- Gruber's [SFX Pack](https://www.lexaloffle.com/bbs/?tid=34367) was a starting point for sounds
+- Cody Eberson's [pico8 music player](https://github.com/codyebberson/pico8-music) for playing the sounds

@@ -1,0 +1,251 @@
+export type PicoCadPaletteRgb = readonly [number, number, number];
+
+export type PicoCadPaletteTheme = {
+    id: string;
+    name: string;
+    author: string;
+    sourceUrl: string;
+    colors: readonly PicoCadPaletteRgb[];
+    shadePal1: readonly number[];
+    shadePal2: readonly number[];
+    transparentIndex: number;
+};
+
+export const picoCadPalettes = {
+    crayon16: {
+        id: 'crayon16',
+        name: 'Crayon 16',
+        author: 'Vsigos',
+        sourceUrl: 'https://lospec.com/palette-list/crayon-16',
+        colors: [[0, 0, 0], [186, 107, 74], [244, 127, 87], [255, 138, 53], [236, 200, 149], [255, 229, 125], [253, 253, 252], [186, 200, 103], [152, 219, 190], [13, 155, 118], [22, 68, 117], [22, 115, 255], [152, 114, 175], [255, 177, 203], [254, 54, 72], [218, 77, 82]],
+        shadePal1: [0, 0, 1, 2, 3, 4, 8, 9, 9, 10, 0, 10, 10, 12, 15, 1],
+        shadePal2: [0, 0, 0, 1, 2, 2, 9, 10, 10, 0, 0, 0, 0, 10, 1, 0],
+        transparentIndex: 0,
+    },
+    endesga16: {
+        id: 'endesga16',
+        name: 'ENDESGA 16',
+        author: 'ENDESGA',
+        sourceUrl: 'https://lospec.com/palette-list/endesga-16',
+        colors: [[228, 166, 114], [184, 111, 80], [116, 63, 57], [63, 40, 50], [158, 40, 53], [229, 59, 68], [251, 146, 43], [255, 231, 98], [99, 198, 77], [50, 115, 69], [25, 61, 63], [79, 103, 129], [175, 191, 210], [255, 255, 255], [44, 232, 244], [4, 132, 209]],
+        shadePal1: [1, 2, 3, 3, 3, 4, 5, 6, 9, 10, 10, 10, 11, 12, 15, 10],
+        shadePal2: [2, 3, 3, 3, 3, 3, 4, 5, 10, 10, 10, 10, 10, 11, 10, 10],
+        transparentIndex: 0,
+    },
+    islandJoy16: {
+        id: 'islandJoy16',
+        name: 'Island Joy 16',
+        author: 'Kerrie Lake',
+        sourceUrl: 'https://lospec.com/palette-list/island-joy-16',
+        colors: [[255, 255, 255], [109, 247, 193], [17, 173, 193], [96, 108, 129], [57, 52, 87], [30, 136, 117], [91, 179, 97], [161, 229, 90], [247, 228, 118], [249, 146, 82], [203, 77, 104], [106, 55, 113], [201, 36, 100], [244, 140, 182], [247, 182, 158], [155, 156, 130]],
+        shadePal1: [1, 2, 3, 4, 4, 4, 5, 6, 7, 10, 11, 4, 11, 12, 13, 3],
+        shadePal2: [2, 3, 4, 4, 4, 4, 4, 5, 6, 11, 4, 4, 4, 11, 12, 4],
+        transparentIndex: 0,
+    },
+    lostCentury: {
+        id: 'lostCentury',
+        name: 'Lost Century',
+        author: 'SurrealEmber',
+        sourceUrl: 'https://lospec.com/palette-list/lost-century',
+        colors: [[209, 177, 135], [199, 123, 88], [174, 93, 64], [121, 68, 74], [75, 61, 68], [186, 145, 88], [146, 116, 65], [77, 69, 57], [119, 116, 59], [179, 165, 85], [210, 201, 165], [140, 171, 161], [75, 114, 110], [87, 72, 82], [132, 120, 117], [171, 155, 142]],
+        shadePal1: [1, 2, 3, 4, 4, 6, 7, 7, 7, 8, 11, 12, 13, 13, 13, 14],
+        shadePal2: [2, 3, 4, 4, 4, 7, 7, 7, 7, 7, 12, 13, 13, 13, 13, 13],
+        transparentIndex: 0,
+    },
+    lushSunset: {
+        id: 'lushSunset',
+        name: 'Lush Sunset',
+        author: 'Abdul Zakkar',
+        sourceUrl: 'https://lospec.com/palette-list/lush-sunset',
+        colors: [[47, 31, 26], [89, 71, 97], [126, 104, 128], [144, 124, 139], [185, 149, 163], [197, 167, 212], [234, 176, 204], [234, 245, 240], [158, 73, 89], [205, 125, 117], [222, 168, 143], [235, 204, 197], [35, 79, 87], [67, 117, 111], [120, 161, 121], [183, 202, 161]],
+        shadePal1: [0, 0, 1, 2, 3, 2, 5, 6, 1, 8, 9, 10, 0, 12, 13, 14],
+        shadePal2: [0, 0, 0, 1, 2, 1, 2, 5, 0, 1, 8, 9, 0, 0, 12, 13],
+        transparentIndex: 0,
+    },
+    na16: {
+        id: 'na16',
+        name: 'NA16',
+        author: 'Nauris',
+        sourceUrl: 'https://lospec.com/palette-list/na16',
+        colors: [[140, 143, 174], [88, 69, 99], [62, 33, 55], [154, 99, 72], [215, 155, 125], [245, 237, 186], [192, 199, 65], [100, 125, 52], [228, 148, 58], [157, 48, 59], [210, 100, 113], [112, 55, 127], [126, 196, 193], [52, 133, 157], [23, 67, 75], [31, 14, 28]],
+        shadePal1: [1, 2, 15, 2, 3, 6, 7, 14, 3, 11, 9, 2, 13, 14, 15, 15],
+        shadePal2: [2, 15, 15, 15, 2, 7, 14, 2, 2, 2, 11, 15, 14, 15, 15, 15],
+        transparentIndex: 0,
+    },
+    pico8: {
+        id: 'pico8',
+        name: 'PICO-8',
+        author: 'Lexaloffle',
+        sourceUrl: 'https://lospec.com/palette-list/pico-8',
+        colors: [[0, 0, 0], [29, 43, 83], [126, 37, 83], [95, 87, 79], [171, 82, 54], [0, 135, 81], [131, 118, 156], [255, 0, 77], [41, 173, 255], [255, 119, 168], [255, 163, 0], [0, 228, 54], [194, 195, 199], [255, 204, 170], [255, 236, 39], [255, 241, 232]],
+        shadePal1: [0, 0, 1, 1, 2, 3, 3, 2, 6, 7, 4, 5, 6, 10, 10, 12],
+        shadePal2: [0, 0, 0, 0, 1, 1, 1, 1, 3, 2, 2, 3, 3, 4, 4, 6],
+        transparentIndex: 0,
+    },
+    psygnosia: {
+        id: 'psygnosia',
+        name: 'Psygnosia',
+        author: 'Arne',
+        sourceUrl: 'https://lospec.com/palette-list/psygnosia',
+        colors: [[0, 0, 0], [27, 30, 41], [54, 39, 71], [68, 63, 65], [82, 82, 76], [100, 100, 124], [115, 97, 80], [119, 120, 91], [158, 164, 167], [203, 232, 247], [224, 139, 121], [162, 50, 78], [0, 51, 8], [8, 74, 60], [84, 106, 0], [81, 108, 191]],
+        shadePal1: [0, 0, 1, 1, 3, 4, 3, 4, 5, 8, 11, 2, 1, 12, 13, 5],
+        shadePal2: [0, 0, 0, 0, 1, 2, 1, 3, 3, 5, 2, 1, 1, 1, 12, 3],
+        transparentIndex: 0,
+    },
+    st16Natural: {
+        id: 'st16Natural',
+        name: 'ST 16 Natural',
+        author: 'Skiller Thomson',
+        sourceUrl: 'https://lospec.com/palette-list/st-16-natural',
+        colors: [[9, 9, 10], [92, 33, 45], [194, 56, 47], [224, 145, 54], [235, 223, 66], [135, 204, 57], [37, 102, 45], [55, 153, 107], [99, 199, 224], [77, 86, 214], [60, 40, 112], [112, 51, 143], [224, 117, 188], [253, 255, 245], [157, 163, 160], [69, 71, 71]],
+        shadePal1: [23, 31, 1, 2, 5, 6, 15, 6, 7, 10, 31, 10, 11, 14, 15, 31],
+        shadePal2: [20, 31, 31, 1, 6, 15, 31, 15, 6, 31, 31, 31, 10, 15, 31, 31],
+        transparentIndex: 0,
+    },
+    steamLords: {
+        id: 'steamLords',
+        name: 'Steam Lords',
+        author: 'Slynyrd',
+        sourceUrl: 'https://lospec.com/palette-list/steam-lords',
+        colors: [[33, 59, 37], [58, 96, 74], [79, 119, 84], [161, 159, 124], [119, 116, 79], [119, 92, 79], [96, 59, 58], [59, 33, 55], [23, 14, 25], [47, 33, 59], [67, 58, 96], [79, 82, 119], [101, 115, 140], [124, 148, 161], [160, 185, 186], [192, 209, 204]],
+        shadePal1: [8, 0, 1, 2, 5, 6, 7, 8, 8, 8, 9, 10, 11, 12, 13, 14],
+        shadePal2: [8, 8, 0, 1, 6, 7, 8, 8, 8, 8, 8, 9, 10, 11, 12, 13],
+        transparentIndex: 0,
+    },
+    urbex16: {
+        id: 'urbex16',
+        name: 'Urbex 16',
+        author: 'Rustocrat',
+        sourceUrl: 'https://lospec.com/palette-list/urbex-16',
+        colors: [[203, 209, 190], [143, 147, 137], [82, 83, 76], [38, 32, 29], [224, 164, 110], [145, 164, 122], [93, 118, 67], [77, 83, 58], [169, 49, 48], [122, 19, 56], [131, 70, 100], [145, 118, 146], [22, 7, 18], [89, 48, 132], [56, 112, 190], [87, 159, 180]],
+        shadePal1: [1, 2, 3, 31, 8, 6, 7, 3, 9, 3, 13, 10, 27, 3, 13, 2],
+        shadePal2: [2, 3, 31, 25, 9, 7, 3, 31, 3, 31, 3, 13, 23, 23, 3, 2],
+        transparentIndex: 0,
+    },
+    vanillaMilkshake: {
+        id: 'vanillaMilkshake',
+        name: 'Vanilla Milkshake',
+        author: 'Space Sandwich',
+        sourceUrl: 'https://lospec.com/palette-list/vanilla-milkshake',
+        colors: [[40, 40, 46], [108, 86, 113], [217, 200, 191], [249, 130, 132], [176, 169, 228], [172, 204, 228], [179, 227, 218], [254, 170, 228], [135, 168, 137], [176, 235, 147], [233, 245, 157], [255, 230, 198], [222, 163, 139], [255, 195, 132], [255, 247, 160], [255, 247, 228]],
+        shadePal1: [0, 0, 12, 1, 1, 4, 5, 4, 1, 8, 9, 2, 1, 12, 13, 14],
+        shadePal2: [0, 0, 1, 0, 0, 1, 4, 1, 0, 1, 8, 1, 0, 1, 12, 13],
+        transparentIndex: 0,
+    },
+    anb16: {
+        id: 'anb16',
+        name: 'ANB16',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/anb16',
+        colors: [[10, 8, 13], [105, 117, 148], [223, 233, 245], [247, 170, 168], [212, 104, 154], [120, 44, 150], [232, 53, 98], [242, 130, 92], [255, 199, 110], [136, 196, 77], [63, 158, 89], [55, 52, 97], [72, 84, 168], [113, 153, 217], [158, 82, 82], [77, 37, 54]],
+        shadePal1: [0, 11, 1, 14, 14, 11, 15, 14, 14, 10, 11, 15, 11, 12, 15, 15],
+        shadePal2: [0, 15, 11, 15, 15, 15, 15, 15, 15, 15, 0, 0, 11, 11, 15, 0],
+        transparentIndex: 0,
+    },
+    cardboardPaint: {
+        id: 'cardboardPaint',
+        name: 'Cardboard Paint',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/cardboard-paint',
+        colors: [[210, 178, 160], [177, 137, 121], [111, 84, 76], [62, 42, 46], [143, 54, 65], [185, 104, 79], [210, 168, 101], [117, 161, 101], [69, 124, 96], [50, 85, 79], [81, 129, 131], [133, 167, 182], [87, 87, 119], [77, 57, 86], [133, 72, 101], [190, 122, 128]],
+        shadePal1: [14, 2, 3, 3, 3, 2, 2, 9, 9, 3, 9, 12, 13, 3, 3, 2],
+        shadePal2: [13, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 9, 3, 3, 3, 3],
+        transparentIndex: 0,
+    },
+    galaxyFlame: {
+        id: 'galaxyFlame',
+        name: 'Galaxy Flame',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/galaxy-flame',
+        colors: [[105, 159, 173], [58, 112, 142], [43, 69, 79], [17, 18, 21], [21, 29, 26], [29, 50, 48], [49, 78, 63], [79, 93, 66], [154, 159, 135], [237, 230, 203], [245, 216, 147], [232, 178, 111], [182, 131, 76], [112, 77, 43], [64, 35, 30], [21, 16, 21]],
+        shadePal1: [1, 2, 5, 3, 3, 4, 5, 5, 7, 8, 12, 12, 13, 14, 15, 15],
+        shadePal2: [2, 5, 4, 3, 3, 3, 4, 4, 6, 7, 7, 13, 14, 4, 15, 15],
+        transparentIndex: 0,
+    },
+    graveyardMist: {
+        id: 'graveyardMist',
+        name: 'Graveyard Mist',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/graveyard-mist',
+        colors: [[11, 13, 10], [56, 55, 48], [102, 95, 87], [130, 133, 123], [177, 184, 169], [222, 230, 184], [149, 189, 178], [90, 123, 133], [39, 50, 69], [71, 122, 90], [129, 186, 120], [212, 234, 146], [181, 151, 102], [143, 84, 80], [102, 64, 60], [64, 41, 47]],
+        shadePal1: [0, 15, 1, 2, 2, 3, 7, 8, 8, 1, 9, 3, 2, 14, 15, 15],
+        shadePal2: [0, 0, 15, 1, 1, 2, 1, 8, 0, 1, 1, 14, 1, 15, 0, 0],
+        transparentIndex: 0,
+    },
+    herbsNSpices: {
+        id: 'herbsNSpices',
+        name: 'Herbs N Spices',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/herbs-n-spices',
+        colors: [[89, 58, 49], [57, 32, 46], [97, 49, 64], [131, 68, 62], [201, 141, 63], [218, 194, 130], [154, 148, 92], [107, 102, 87], [56, 65, 80], [110, 126, 141], [144, 181, 198], [245, 239, 232], [171, 153, 164], [85, 81, 111], [70, 53, 84], [23, 17, 26]],
+        shadePal1: [1, 15, 1, 0, 3, 7, 7, 0, 1, 8, 9, 12, 7, 8, 1, 15],
+        shadePal2: [15, 15, 15, 1, 0, 0, 1, 1, 15, 1, 8, 7, 8, 15, 15, 15],
+        transparentIndex: 0,
+    },
+    magicolor16: {
+        id: 'magicolor16',
+        name: 'Magicolor 16',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/magicolor-16',
+        colors: [[29, 24, 25], [72, 38, 50], [39, 54, 53], [77, 61, 47], [147, 54, 51], [49, 100, 54], [130, 92, 58], [185, 83, 88], [199, 115, 49], [97, 122, 111], [127, 165, 51], [202, 152, 100], [175, 170, 148], [125, 207, 168], [231, 220, 88], [247, 246, 219]],
+        shadePal1: [0, 0, 0, 0, 1, 2, 3, 4, 6, 5, 5, 6, 9, 9, 10, 12],
+        shadePal2: [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 5, 3, 9],
+        transparentIndex: 0,
+    },
+    mystic16: {
+        id: 'mystic16',
+        name: 'Mystic 16',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/mystic-16',
+        colors: [[22, 13, 19], [49, 41, 62], [77, 102, 96], [149, 182, 102], [239, 158, 78], [173, 64, 48], [86, 33, 42], [144, 75, 65], [166, 153, 152], [95, 87, 94], [142, 184, 158], [246, 242, 195], [231, 155, 124], [155, 76, 99], [67, 33, 66], [209, 147, 95]],
+        shadePal1: [0, 0, 1, 2, 7, 6, 0, 6, 9, 1, 2, 8, 7, 6, 0, 7],
+        shadePal2: [0, 0, 0, 1, 6, 6, 0, 6, 1, 0, 1, 9, 6, 6, 0, 6],
+        transparentIndex: 0,
+    },
+    nanner16: {
+        id: 'nanner16',
+        name: 'Nanner 16',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/nanner-16',
+        colors: [[122, 204, 204], [98, 125, 179], [85, 64, 128], [89, 40, 88], [128, 64, 85], [179, 125, 98], [204, 201, 122], [112, 179, 98], [64, 128, 106], [39, 68, 87], [204, 204, 204], [153, 148, 145], [102, 92, 95], [51, 43, 51], [128, 78, 70], [77, 42, 42]],
+        shadePal1: [8, 2, 13, 13, 15, 14, 12, 8, 9, 13, 11, 12, 13, 13, 15, 13],
+        shadePal2: [9, 13, 13, 13, 13, 15, 15, 13, 13, 13, 12, 13, 13, 13, 13, 13],
+        transparentIndex: 0,
+    },
+    rgrProto16: {
+        id: 'rgrProto16',
+        name: 'RGR Proto16',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/rgr-proto16',
+        colors: [[255, 249, 179], [185, 197, 204], [71, 116, 179], [20, 75, 102], [143, 179, 71], [46, 153, 78], [242, 144, 102], [230, 80, 80], [112, 125, 124], [41, 60, 64], [23, 11, 26], [10, 1, 13], [87, 9, 50], [135, 30, 46], [255, 191, 64], [204, 20, 36]],
+        shadePal1: [4, 8, 3, 9, 5, 9, 13, 13, 9, 10, 11, 11, 10, 12, 4, 13],
+        shadePal2: [8, 9, 9, 10, 9, 9, 12, 12, 9, 10, 11, 11, 10, 10, 13, 12],
+        transparentIndex: 0,
+    },
+    soulOfTheSea: {
+        id: 'soulOfTheSea',
+        name: 'Soul of the Sea',
+        author: '',
+        sourceUrl: 'https://lospec.com/palette-list/soul-of-the-sea',
+        colors: [[146, 80, 63], [112, 58, 40], [86, 69, 43], [64, 53, 33], [207, 188, 149], [148, 149, 118], [129, 120, 77], [96, 95, 51], [122, 126, 103], [147, 163, 153], [81, 103, 90], [47, 72, 69], [66, 89, 97], [70, 126, 115], [1, 20, 26], [32, 54, 51]],
+        shadePal1: [2, 3, 3, 3, 8, 10, 2, 3, 2, 10, 11, 15, 15, 11, 14, 14],
+        shadePal2: [3, 3, 14, 14, 2, 3, 3, 3, 3, 11, 15, 14, 15, 15, 14, 14],
+        transparentIndex: 0,
+    },
+} as const satisfies Record<string, PicoCadPaletteTheme>;
+
+export type PicoCadPaletteId = keyof typeof picoCadPalettes;
+
+export function isPicoCadPaletteId(value: unknown): value is PicoCadPaletteId {
+    return typeof value === 'string' && value in picoCadPalettes;
+}
+
+export function picoCadPaletteOverride(id: PicoCadPaletteId) {
+    const palette = picoCadPalettes[id];
+    return {
+        colors: palette.colors,
+        shadePal1: palette.shadePal1,
+        shadePal2: palette.shadePal2,
+        transparentIndex: palette.transparentIndex,
+    };
+}

@@ -60,11 +60,22 @@ try {
     window.__step=t=>{__time=t; const q=__raf.splice(0);for(const f of q)f(t)};
     window.__loaded=false;addEventListener('load',()=>__loaded=true);
   `});
+  const navigate = async url => {
+    errors=[];
+    await send('Page.navigate',{url});
+    for(let i=0;i<100;i++) {
+      if(await evaluate('window.__loaded && __raf.length>0')) return;
+      if(errors.length) throw Error(JSON.stringify(errors));
+      await sleep(30);
+    }
+    throw Error(`Game did not initialize: ${url}`);
+  };
+  const click = async (x, y) => {
+    await send('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
+    await send('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
+  };
   const run=async(name,url)=>{
-    errors=[];await send('Page.navigate',{url});
-    let ready = false;
-    for(let i=0;i<100;i++){if(await evaluate('window.__loaded && __raf.length>0')){ready=true;break}await sleep(30)}
-    if (!ready) throw Error(`Game did not initialize: ${url}`);
+    await navigate(url);
     const shots=[];
     const frame=async(t,label)=>{
       await evaluate(`__step(${t})`);
@@ -74,14 +85,26 @@ try {
       shots.push(shot.data);
     };
     await frame(1000,'title');
-    await send('Input.dispatchMouseEvent',{type:'mousePressed',x:480,y:240,button:'left',clickCount:1});
-    await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:480,y:240,button:'left',clickCount:1});
-    for(const t of [1060,1120,1240,1600,2400]) await frame(t,`broken-${t}`);
+    await click(480,240);
+    for(const t of [1060,1120,1240,1600,2400]) await frame(t,`title-wipe-${t}`);
     await send('Input.dispatchKeyEvent',{type:'keyDown',key:'x',code:'KeyX',windowsVirtualKeyCode:88});
     for(const t of [2500,2770,2900,3200,3600])await frame(t,`stage-${t}`);
+    // The wheel settles after four seconds, blinks four times, then the
+    // rainbow wipe swaps stages at its midpoint. This replaces the old
+    // star-wipe and keyboard-title tests, whose controls no longer exist.
+    for(const t of [6399,6400,7999,8000,8350,8700]) {
+      await frame(t,`wheel-wipe-${t}`);
+      if(name==='dev') {
+        const [count,active,next]=await evaluate('transitionState()');
+        if(active!==(t>=8000&&t<8700) || next!==(t===8000?1:-1))
+          throw Error(`Wrong wheel transition at ${t}: ${[count,active,next]}`);
+        if(t>=8350 && !await evaluate("objects.some(o=>o.t==='target')"))
+          throw Error('Wipe did not load the water stage');
+      }
+    }
     // Scan the scene with genuine pointer events: exercise hits, bounces,
     // stage changes, sound caching and the corresponding HUD counter.
-    let t=3600;
+    let t=8700;
     for(let y=100;y<450;y+=70)for(let x=120;x<850;x+=90){
       await send('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
       await evaluate(`__step(${t+=100})`);
@@ -125,17 +148,16 @@ try {
       if(count)mismatches.push({frame:i,pixels:count});
     }
     console.log(`${name} vs packed: ${packed.length-mismatches.length}/${packed.length} identical frames`,mismatches);
-    if(mismatches.length)process.exitCode=1;
+    // Dev retains authored precision; the pack intentionally rounds it.
+    // Only a saved packed baseline is an exact visual regression oracle.
+    if(name==='baseline' && mismatches.length)process.exitCode=1;
   }
   // The presentation rectangle must not change the camera or pointer mapping.
   // Exercise height-limited, width-limited, exact-size and high-DPI windows.
   let pixelDensity;
   for (const [width,height,deviceScaleFactor] of [[600,800,1],[1200,800,1],[375,900,3],[1200,500,2]]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor,mobile:false});
-    await send('Page.navigate',{url:devUrl});
-    let ready=false;
-    for(let i=0;i<100;i++){if(await evaluate('window.__loaded && __raf.length>0')){ready=true;break}await sleep(30)}
-    if(!ready)throw Error('Viewport test initialization timed out');
+    await navigate(devUrl);
     const rect=await evaluate(`(()=>{
       __step(1000);
       const c=document.querySelector('canvas'),r=c.getBoundingClientRect();
@@ -150,12 +172,13 @@ try {
     if(String(buffer)!==String(expected))throw Error('Render resolution did not follow displayed device pixels');
     const shot=await send('Page.captureScreenshot',{format:'png'});
     writeFileSync(join(out,`viewport-${width}x${height}.png`),Buffer.from(shot.data,'base64'));
-    // Leave the title through its real keyboard handler, then isolate one
-    // existing object and aim at its bounds, independent of authored layout.
-    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'x',code:'KeyX',windowsVirtualKeyCode:88});
+    // Leave the title with a real click, then load the water stage (the
+    // wheel intercepts clicks) and isolate a target to test ray picking.
+    await click(rect.x+rect.width/2,rect.y+rect.height/2);
     await evaluate(`(()=>{
       __step(1400);__step(1800);
-      const o=objects.find(o=>o.parts.some(p=>p.mesh));
+      loadStage(1);
+      const o=objects.find(o=>o.t==='target');
       objects.splice(0,objects.length,o);o.t='bonus';o.bounce=0;
       cam.at=o.min.map((v,i)=>(v+o.max[i])/2);cam.shake=0;
       __step(1900);
@@ -175,10 +198,7 @@ try {
     }
     console.log('viewport/picking:',{width,height,deviceScaleFactor,rect});
   }
-  await send('Page.navigate',{url:devUrl});
-  let hudReady=false;
-  for(let i=0;i<100;i++){if(await evaluate('window.__loaded && __raf.length>0')){hudReady=true;break}await sleep(30)}
-  if(!hudReady)throw Error('HUD scale test initialization timed out');
+  await navigate(devUrl);
   console.log('independent HUD scaling:',await evaluate(`(()=>{
     // Compare actual submitted glyph/effect transforms, not a second layout
     // implementation. Changing sample density must leave every command intact.

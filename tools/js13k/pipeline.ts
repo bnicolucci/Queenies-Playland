@@ -33,7 +33,7 @@ export const TUNED = ['-Zab31', '-Zlr951', '-Zmc4', '-Zmd29', '-Zpr14', '-S0,1,2
 // Not a tuned parameter, and not part of the search: -D lets Roadroller's
 // decoder keep its state in single-letter globals instead of scoping them,
 // worth 23 zip bytes. It is safe ONLY while index.html has no script of its own
-// and no single-letter element id (today: one <canvas>, one #hint). Adding
+// and no single-letter element id (today: one <canvas>, one #hud). Adding
 // either means dropping this flag — verified by packing and loading the page.
 export const DIRTY = ['-D'];
 

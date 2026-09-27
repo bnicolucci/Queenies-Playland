@@ -10,9 +10,7 @@
 import { STRIDE } from './pico.js';
 
 // Atlas tile size in texels that `draw`'s `uv.tile` assumes when a part does
-// not override it. Exported so the Entity editor's tile picker snaps to the
-// same grid the shader samples — two copies of this number means the picker
-// highlights one tile while the renderer draws another.
+// not override it.
 export const DEFAULT_TILE_SIZE = 16;
 
 export function createEngine(canvas, vertSrc, fragSrc) {
@@ -52,7 +50,7 @@ export function createEngine(canvas, vertSrc, fragSrc) {
   // double-sided and the fragment shader flips their back-face normals.
 
   // --- textures ---
-  let texW, texH, bg;
+  let texW, texH;
   const makeTex = (unit, internal, format, w, h, data) => {
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + unit);
@@ -72,26 +70,13 @@ export function createEngine(canvas, vertSrc, fragSrc) {
       const t = model.texture;
       texW = t.width;    // uv.tile rects are computed against
       texH = t.height;   // the model texture's dimensions
-      bg = model.bg;     // the background SLOT — see setPalette
       makeTex(0, gl.R8, gl.RED, texW, texH, t.pixels);
-      makeTex(1, gl.RGB8, gl.RGB, 16, 3, null);
+      makeTex(1, gl.RGB8, gl.RGB, 16, 3, model.palette);
       // Samplers default to texture unit 0, so only the palette needs setting.
       gl.uniform1i(u('u_paletteTexture'), 1);
       gl.uniform1f(u('u_transparentColor'), model.transparentColor);
-      E.setPalette(model.palette);
-    },
-
-    // Recolour everything: the model's texture holds palette INDICES, so a
-    // whole new mood is 144 bytes overwritten in the 16x3 palette texture
-    // (build them with pico.js's buildPalette). The clear colour follows the
-    // swap out of the new row 0, since the model's background `bg` is a SLOT
-    // and not a colour — which is also why a swap may never renumber slots:
-    // u_transparentColor is an index the shader discards, so moving it changes
-    // which pixels are HOLES rather than what colour anything is.
-    setPalette(bytes) {
-      // setModel leaves palette unit 1 active and both textures bound.
-      // Drawing only changes VAOs/buffers; there is no texture rebinding.
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 16, 3, gl.RGB, gl.UNSIGNED_BYTE, bytes);
+      // Every stage uses the model's palette; upload it once per engine.
+      const bytes = model.palette, bg = model.bg;
       gl.clearColor(bytes[bg * 3] / 255, bytes[bg * 3 + 1] / 255, bytes[bg * 3 + 2] / 255, 1);
     },
 

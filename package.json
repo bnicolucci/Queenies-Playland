@@ -10,7 +10,6 @@
     "pack": "bun tools/js13k/pack.ts",
     "pack:tune": "bun tools/js13k/pack.ts --tune",
     "breakdown": "bun tools/js13k/breakdown.ts",
-    "test:blender": "bun tools/blender/tests/run.ts",
     "test:engine": "bun run pack && bun tools/js13k/verify_core.ts && bun tools/js13k/verify_runtime.ts"
   },
   "devDependencies": {

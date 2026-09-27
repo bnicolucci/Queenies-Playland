@@ -1,6 +1,6 @@
 ﻿// Pure parser/compact-format and fixed-volume audio checks; no browser needed.
 import assert from 'node:assert/strict';
-import { parsePicoCAD } from '../../src/pico.js';
+import { parsePicoCAD, STRIDE, TEX_W } from '../../src/pico.js';
 import { renderSfx, SOUNDS } from '../../src/sfx.js';
 import { tryEncodeCompact } from '../vite/picocad_compact.ts';
 const raw=await Bun.file('src/assets/model.txt').text();
@@ -9,15 +9,14 @@ const original=parsePicoCAD(raw);
 const compact=parsePicoCAD(tryEncodeCompact(raw)!);
 assert.deepEqual(original.texture,compact.texture);
 assert.deepEqual(original.palette,compact.palette);
-assert.deepEqual(original.shades,compact.shades);
 let maxError=0;
 for(let i=0;i<original.objects.length;i++){
  const a=original.objects[i], b=compact.objects[i];
  assert.equal(a.name,b.name); assert.equal(a.data.length,b.data.length);
  for(let j=0;j<a.data.length;j++){
   const d=Math.abs(a.data[j]-b.data[j]);
-  if(j%10>=8)assert.equal(d,0,'Color/flag drift');
-  else if(j%10>=6)assert(d<.0051/128,'UV rounding exceeds half the compact texel precision');
+  if(j%STRIDE>=8)assert.equal(d,0,'Color/flag drift');
+  else if(j%STRIDE>=6)assert(d<.0051/TEX_W,'UV rounding exceeds half the compact texel precision');
   else maxError=Math.max(maxError,d);
  }
 }
@@ -38,7 +37,7 @@ model.graph={visible:true,transform:parent,children:[{name:'triangle',visible:tr
 const result=parsePicoCAD(JSON.stringify(model)).objects[0].data;
 for(let i=0;i<3;i++){
  const expected=transform(transform(points[i],child),parent);expected[0]*=-1;
- for(let k=0;k<3;k++)assert(Math.abs(result[i*10+k]-expected[k])<2e-6,'TRS mismatch');
+ for(let k=0;k<3;k++)assert(Math.abs(result[i*STRIDE+k]-expected[k])<2e-6,'TRS mismatch');
 }
 let samples=0;
 const random=Math.random;

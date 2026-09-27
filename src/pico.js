@@ -23,7 +23,7 @@ const matMul = (a, b) => {
 };
 
 // picoCAD node rotations are in RADIANS, applied per axis. (Motion deltas in
-// the same file ARE turns -- do not let that leak back in here; see CLAUDE.md.)
+// the same file ARE turns -- do not let that leak back in here.)
 const matTRS = ({ pos, rot, scale }) => {
   const [cx, sx, cy, sy, cz, sz] =
     [Math.cos(rot.x), Math.sin(rot.x), Math.cos(rot.y),
@@ -55,7 +55,7 @@ export const TEX_W = 128;
 // tools/vite/picocad_compact.ts). Decoding reconstructs the raw JSON shape so
 // the rest of the parser has a single format to care about.
 
-const COMPACT_PREFIX = 'pc2!';
+export const COMPACT_PREFIX = 'pc2!';
 
 const dvec = (v, def) => v ? { x: v[0], y: v[1], z: v[2] } : { x: def, y: def, z: def };
 
@@ -105,12 +105,8 @@ function decodeCompact(text) {
  * indices INTO them (& 15: shade palettes may use PICO-8 extended color
  * numbers 16-31, which map to their standard sibling since only 16 RGBs
  * are stored).
- *
- * Exported because this is the whole of a palette SWAP: every pixel in the
- * model is an INDEX, so 16 fresh RGBs recolour the world — and the shade rows
- * re-derive for free, since the shade tables point at the new colours too.
  */
-export function buildPalette(colors, shades) {
+function buildPalette(colors, shades) {
   const bytes = new Uint8Array(16 * 3 * 3);
   for (let r = 0; r < 3; r++)
     for (let i = 0; i < 16; i++) {
@@ -148,7 +144,6 @@ export function parsePicoCAD(json) {
   return {
     texture: { width: TEX_W, height: pixels.length / TEX_W, pixels },
     palette: buildPalette(colors, shades),
-    shades,                    // kept: a palette swap resolves through these
     // The transparent colour and the background are palette SLOTS, not
     // colours — a swap recolours the slot, it must never renumber it.
     transparentColor: tex.transparent_color,

@@ -6,11 +6,8 @@
 //   p / r / s = pos / rot (degrees, DOMMatrix.rotate order) / scale, each
 //   omitted when it is the identity.
 //   c = a palette colour override for the whole entity.
-//   b = the palette BANK this placement resolves its indices through, 0 by
-//   default (the world's palette, which follows the stage). A higher bank is a
-//   whole second 16-colour scheme, so two placements of the SAME blueprint can
-//   wear different colours in one frame -- see the PALETTE_BANKS block in
-//   main.js for what each bank holds. The Stage panel round-trips `b`.
+//   b = legacy palette bank metadata, round-tripped by the Stage panel.
+//   The game uses one model palette and warns about nonzero banks in dev.
 // One export per stage, for the same reason entities.js has one per entity:
 // a stage nothing imports costs zero packed bytes.
 // main.js's loadStage is what reads all this — it bakes p/r/s with entity.js's
