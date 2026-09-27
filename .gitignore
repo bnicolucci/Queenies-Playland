@@ -19,6 +19,3 @@ __pycache__/
 /.vite-dev.*.log
 # `bun run breakdown` scratch build (deleted on exit; here in case a run is killed)
 dist13k-size/
-
-# Claude Code session notes: local working aid, deliberately not part of the repo
-/CLAUDE.md
