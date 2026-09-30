@@ -317,3 +317,14 @@ export const X = [
   { mesh: 'mesh_slice', pos: [-0.0835, 0, 0.0835], rot: [0, 135, 0], scale: [0.5484, 1, 1], color: 6 },
   { mesh: 'mesh_slice', pos: [0.0835, 0, 0.0835], rot: [0, -135, 0], scale: [0.5484, 1, 1], color: 6 },
 ];
+
+export const CROSS_HAIR = [
+  { mesh: 'mesh_slice', pos: [0.116, 0, 0], rot: [0, 90, 0], scale: [0.4173, 0.2399, 0.6877], color: 1 },
+  { mesh: 'mesh_slice', pos: [0, 0, -0.116], rot: [0, 180, 0], scale: [0.4173, 0.2399, 0.6877], color: 1 },
+  { mesh: 'mesh_slice', pos: [-0.116, 0, 0], rot: [0, -90, 0], scale: [0.4173, 0.2399, 0.6877], color: 1 },
+  { mesh: 'mesh_slice', pos: [-0.0952, 0.0011, 0.0952], rot: [0, -45.0014, 0], scale: [0.2125, 0.2379, 0.3502], color: 1 },
+  { mesh: 'mesh_slice', pos: [0, 0, 0.116], scale: [0.4173, 0.2399, 0.6877], color: 1 },
+  { mesh: 'mesh_slice', pos: [0.0952, 0.0011, 0.0952], rot: [0, 44.9987, 0], scale: [0.2125, 0.2379, 0.3502], color: 1 },
+  { mesh: 'mesh_slice', pos: [0.0952, 0.0011, -0.0952], rot: [0, 134.9987, 0], scale: [0.2125, 0.2379, 0.3502], color: 1 },
+  { mesh: 'mesh_slice', pos: [-0.0952, 0.0011, -0.0952], rot: [0, -135.0013, 0], scale: [0.2125, 0.2379, 0.3502], color: 1 },
+];

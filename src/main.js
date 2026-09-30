@@ -3,11 +3,11 @@ import * as A from './anim.js';
 import modelTxt from './assets/model.txt?raw';
 import { makeCamera } from './camera.js';
 import { createEngine, perspective } from './engine.js';
-import { CARNY, COLOR_WHEEL, EYE_COMPLEX, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN, WHACKA, X } from './entities.js';
+import { CARNY, COLOR_WHEEL, CROSS_HAIR, EYE_COMPLEX, MALLET, MARK, MOLE, STAR, TIMER, UNICORN, WATERGUN, WHACKA, X } from './entities.js';
 import { drawEntity, poseState, spawnEntity, trs, worldBounds } from './entity.js';
 import { GAME_VIEW } from './game_view.js';
 import { parsePicoCAD, TEX_W } from './pico.js';
-import { bounce_lite, carnysound, playSfx, SOUNDS, stopSfx, water_spray, whack, wheel_rotate } from './sfx.js';
+import { bounce_lite, buzzer, carnysound, playSfx, SOUNDS, stopSfx, tick, water_spray, whack, wheel_rotate } from './sfx.js';
 import frag from './shaders/model.frag?raw';
 import vert from './shaders/model.vert?raw';
 import { COLOR_CHOOSER, INTRO, STAGE_1, STAGE_2 } from './stages.js';
@@ -128,8 +128,9 @@ if (import.meta.env.DEV) {
   GLYPHS += 'FC';
   FONT += 'fec0c0fcc0c0c0007cc6c0c0c0c67c00';
 }
-const BANDS = [10, 2, 4, 15];
-const HUD = 0, YELLOW = 1, ORANGE = 2, DEAD = 3;
+// ALARM (red) sits at texture rows 48-63, which the model's texture leaves empty.
+const BANDS = [10, 2, 4, 15, 6];
+const HUD = 0, YELLOW = 1, ORANGE = 2, DEAD = 3, ALARM = 4;
 const FONT_Y = 112;
 const bandY = b => FONT_Y - b * 16;
 for (let b = 0; b < BANDS.length; b++)
@@ -177,6 +178,14 @@ const drawText = (str, x, y, s = 1, b = HUD, r = 1e9) => {
 };
 
 const hash = i => Math.abs(Math.sin(i * 12.9898) * 43758.5) % 1;
+// Squash and stretch for a correct hit, as a scale over one hit's elapsed
+// fraction u (0..1): squats wide first, springs tall, settles back to 1. Past
+// the end (or NaN, for something never hit) it is exactly identity.
+const SQUASH = 0.25;
+const squash = u => {
+  const a = u < 1 ? SQUASH * Math.sin(u * Math.PI * 2) * (1 - u) : 0;
+  return [1 + a, 1 - a, 1 + a];
+};
 
 const GUN_PIVOT = 0;
 const GUN_AIM = WATERGUN.findIndex((p, i) => i && !p.mesh);
@@ -185,6 +194,12 @@ const SPOUT_SWELL = 1.2, SPOUT_MS = 90, SPOUT_SCALE = [1, 1, 1];
 const GUN_SWING = 90, GUN_TILT = 60;
 const GUN_ROT = [0, 0, 0], GUN_STATE = [-1, [[GUN_PIVOT, 0, GUN_ROT, 0], [GUN_SPOUT, 0, 0, SPOUT_SCALE]]];
 const clamp = (v, m) => Math.max(-m, Math.min(m, v));
+// Both stages mark where the hit will land with the CROSS_HAIR blueprint. It's
+// authored flat (like X): whack-a-mole lays it on the hole rims as is, the water
+// gun stands it up with the same rotate(90, 0, 0) as the wall's X marks.
+const WATER_AIM = 1, WHACK_AIM = 2.0;
+let crossParts;
+const drawCross = (m, s) => drawEntity(E, crossParts ||= spawnEntity(CROSS_HAIR, MESH), m.scale(s, 1, s));
 const DROP_MS = 30, DROPS = 40, SPEED = 14, GRAVITY = 12, DROP_SIZE = 0.18;
 const drops = [];
 const DEAL_MS = 1000, HIT_GRACE = 300;
@@ -195,7 +210,7 @@ const winStage = () => {
   won.push(prize);
   goStage(won.length === WEDGES.length ? WIN_STAGE : 0);
 };
-const miss = () => { cam.shake = 2; playSfx(SOUNDS[TAGS.enemy[0]]); };
+const miss = () => { cam.shake = 2; playSfx(buzzer); };
 const deal = () => {
   deals++;
   for (const o of objects)
@@ -204,7 +219,7 @@ const deal = () => {
 const splash = (o, now) => {
   hitAt = now;
   if (o.color === prize) {
-    o.color = 15; o.t = 0; o.bounce = 1;
+    o.color = 15; o.t = 0; o.bounce = 1; o.hitAt = now;
     playSfx(SOUNDS[TAGS.target[0]]);
     if (!objects.some(o => o.t === 'target')) winStage();
   } else {
@@ -214,7 +229,10 @@ const splash = (o, now) => {
 };
 let gun, held = 0, grab, spraying = 0, sprayLoop = 0, lastDrop = 0, spray = water_spray;
 const TIMER_S = 30, TIMER_FIT = 20;
-let timer, stageAt = 0;
+// The last TICK_FROM seconds tick audibly; 0 buzzes and blinks the whole
+// screen red (BLINKS times, BLINK_MS on / BLINK_MS off) before the lose path.
+const TICK_FROM = 5, BLINKS = 2, BLINK_MS = 150, RED = 6;
+let timer, stageAt = 0, ticked = -1;
 const SLIDE_MS = 1000, LOSE_MS = 2500;
 let carny, carnyTo, lost = 0;
 // Every opening of the carny's mouth goes through gasp(): a drop landing on
@@ -222,7 +240,9 @@ let carny, carnyTo, lost = 0;
 // thing on a slower LAUGH_MS clock, re-armed every cycle. Not retriggered
 // mid-gasp, so a sustained spray reads as repeated gasps rather than a mouth
 // held half open -- and the sound plays once per opening, never per drop.
-const GASP_MS = 220, GASP_DEG = -16, LAUGH_MS = 300, LAUGH_DEG = -20;
+// The laugh swings the jaw between LAUGH_OPEN (never fully shut while laughing)
+// and LAUGH_DEG; it only closes to 0 once the laugh ends with the stage.
+const GASP_MS = 220, GASP_DEG = -16, LAUGH_MS = 300, LAUGH_DEG = -24, LAUGH_OPEN = -12;
 let gaspAt = -1e9;
 const gasp = (now, ms) => { if (now - gaspAt > 2 * ms) { gaspAt = now; playSfx(carnysound); } };
 const drawTimer = now => {
@@ -233,8 +253,12 @@ const drawTimer = now => {
   const [cx, cy] = toHud(0, 0, 0), [rx] = toHud(1, 0, 0);
   const s = Math.max(1, (rx - cx) * 2 / TIMER_FIT | 0);
   const left = stageAt ? Math.max(0, TIMER_S - (now - stageAt) / 1000) | 0 : TIMER_S;
-  if (stageAt && !left && !lost) { lost = now; held = spraying = 0; }
-  drawText(String(left).padStart(2, 0), cx - 7.5 * s | 0, cy - 3.5 * s | 0, s, YELLOW);
+  if (left <= TICK_FROM && left !== ticked) {
+    ticked = left;
+    playSfx(left ? tick : buzzer);
+    if (!left) { lost = now; held = spraying = 0; }
+  }
+  drawText(String(left).padStart(2, 0), cx - 7.5 * s | 0, cy - 3.5 * s | 0, s, left <= TICK_FROM ? ALARM : YELLOW);
 };
 if (import.meta.env.DEV) {
   import('./sfx_bank.js').then(b => window.bank = b);
@@ -255,6 +279,16 @@ const muzzle = () => {
 const drawGun = now => {
   SPOUT_SCALE[0] = SPOUT_SCALE[1] = spraying ? A.tween(now, SPOUT_MS, 1, SPOUT_SWELL, A.ease_out_quad, A.cycle) : 1;
   poseState(gun.parts, WATERGUN, GUN_STATE);
+  if (held) {
+    // Drops fly straight in z (gravity only bends y) and every drop leaves the
+    // muzzle the same way, so the stream crosses the targets' front face at one
+    // exact moment: mark that spot. Past a drop's lifetime there's no mark.
+    const [o, v] = muzzle(), z = Math.max(...objects.filter(t => t.t === 'target').map(t => t.max[2]));
+    const t = (z - o[2]) / v[2];
+    if (t > 0 && t < DROPS * DROP_MS / 1000)
+      drawCross(new DOMMatrix().translate(o[0] + v[0] * t, o[1] + v[1] * t - GRAVITY * t * t / 2, z + AIM_LIFT)
+        .rotate(90, 0, 0), WATER_AIM);
+  }
   if (spraying) sprayLoop ||= playSfx(spray, 1);
   else sprayLoop = stopSfx(sprayLoop);
   const k = now / DROP_MS | 0;
@@ -299,10 +333,10 @@ canvas.addEventListener('pointerdown', () => { spraying = held; });
 const MALLET_Y = 1, MALLET_H = 1.5, MALLET_REST = -90, MALLET_STRIKE = 90, MALLET_YAW = 30, WHACK_MS = 260;
 const MOLE_DOWN = -2, MOLE_UP = -0.5;
 const MOLE_MS = 1500, MOLE_RISE = 180, MOLE_ODDS = 0.35;
-const WALL_Y = 4.5, WALL_Z = -1.9, X_SIZE = 2, HIT_R = 1.1;
-const FIRST = 6, FLASH_MS = 300, FLASH_BEAT = 60;
+const WALL_Y = 4.5, WALL_Z = -1.9, X_SIZE = 2, HIT_R = 1.1, AIM_LIFT = 0.15;
+const FIRST = 6, FLASH_MS = 300, FLASH_BEAT = 60;   // a right mole flashes white, a wrong one RED
 let holes = [], holeBox, whackAt = -1e9, struck = 1, hits = 0, need, visits = 0, malletParts, xParts, wallMole;
-const moles = [], struckAt = [], flashAt = [];
+const moles = [], struckAt = [], flashAt = [], flashBad = [];
 const slotOf = (i, now) => {
   const t = now + hash(i) * MOLE_MS, k = t / MOLE_MS | 0;
   return [k, t - k * MOLE_MS];
@@ -318,14 +352,17 @@ const moleColor = (i, now) => {
 };
 const paintMole = (parts, c) => parts.forEach((p, j) => MOLE[j].color === 4 && (p.color = c));
 canvas.addEventListener('pointerdown', () => {
-  if (holes.length) { whackAt = performance.now(); stageAt ||= whackAt; struck = 0; playSfx(whack); }
+  if (holes.length && !lost) { whackAt = performance.now(); stageAt ||= whackAt; struck = 0; playSfx(whack); }
 });
 const drawWhack = now => {
+  // Time's up: the moles, flashes and mallet swing all run off this clock, so
+  // pinning it to the moment of loss freezes the board in place.
+  if (lost) now = lost;
   paintMole(wallMole ||= spawnEntity(MOLE, MESH), prize);
   holes.forEach((h, i) => {
     paintMole(moles[i] ||= spawnEntity(MOLE, MESH), moleColor(i, now));
     const flash = now - flashAt[i] < FLASH_MS && (now - flashAt[i]) / FLASH_BEAT & 1;
-    drawEntity(E, moles[i], h.place.translate(0, MOLE_DOWN + (MOLE_UP - MOLE_DOWN) * up(i, now), 0), flash ? 1 + EMISSIVE : -1);
+    drawEntity(E, moles[i], h.place.translate(0, MOLE_DOWN + (MOLE_UP - MOLE_DOWN) * up(i, now), 0).scale(...squash(flashBad[i] ? 1 : (now - flashAt[i]) / FLASH_MS)), flash ? (flashBad[i] ? RED : 1) + EMISSIVE : -1);
     if (i >= need) return;
     const w = new DOMMatrix().translate(h.place.m41, WALL_Y + holeBox[2] - h.place.m43, WALL_Z);
     drawEntity(E, wallMole, w);
@@ -344,11 +381,17 @@ const drawWhack = now => {
     const i = holes.indexOf(hole);
     if (up(i, now) > 0.5 && off(hole) < HIT_R && struckAt[i] !== slotOf(i, now)[0]) {
       if (moleColor(i, now) === prize) {
-        struckAt[i] = slotOf(i, now)[0]; flashAt[i] = now; playSfx(SOUNDS[TAGS.target[0]]);
+        struckAt[i] = slotOf(i, now)[0]; flashAt[i] = now; flashBad[i] = false; playSfx(SOUNDS[TAGS.target[0]]);
         if (++hits >= need) winStage();
-      } else miss();
+      } else { flashAt[i] = now; flashBad[i] = true; miss(); }
     }
   }
+  // The head swings through the plane straight below the pivot, so it always
+  // lands on (px, pz). The crosshair lies flat on the hole rims right under the
+  // head, so you can see the landing spot. AIM_LIFT keeps it just above the rim
+  // (at 0.05 the rim hid it; at 0.6 moles rose halfway through it). The wall's
+  // X was tried here first and its wedge arms were too thick, hiding the hole.
+  drawCross(new DOMMatrix().translate(px, MALLET_Y + AIM_LIFT, pz), WHACK_AIM);
   const s = MALLET_REST + (age < 1 ? (MALLET_STRIKE - MALLET_REST) * Math.sin(age * Math.PI) : 0);
   const m = new DOMMatrix().translate(px, MALLET_Y + MALLET_H, pz)
     .rotate(0, 180 + MALLET_YAW, 0).rotate(s, 0, 0).rotate(0, 0, 90);
@@ -395,7 +438,7 @@ const loadPlacements = stage => {
   wheel = findObject(COLOR_WHEEL)?.parts;
   if (wheel) for (const p of WEDGES) if (won.includes(p.color)) wheel[COLOR_WHEEL.indexOf(p)].color = 15;
   gun = findObject(WATERGUN);
-  timer = findObject(TIMER); stageAt = 0;
+  timer = findObject(TIMER); stageAt = 0; ticked = -1;
   timer?.parts.forEach((p, i) => i && (p.color = prize));
   carny = findObject(CARNY); lost = 0;
   yawnAt = performance.now() + YAWN_AFTER - YAWN_EVERY;   // first yawn lands YAWN_AFTER from now
@@ -564,7 +607,7 @@ function pick(e) {
     const o = hit;
     const wrong = o.t === 'target' && o.color !== prize;
     const feedback = wrong ? TAGS.enemy : act;
-    playSfx(SOUNDS[feedback[0]]);
+    playSfx(wrong ? buzzer : SOUNDS[feedback[0]]);
     o.bounce = 1;
     cam.shake = feedback[1];
     if (wrong) {
@@ -624,6 +667,9 @@ requestAnimationFrame(function loop(now) {
   projView = perspective(cam.fov, GAME_VIEW.width / GAME_VIEW.height, cam.dist + radius * 3)
     .multiply(cam.view());
 
+  // Outside the carny block: a stage reached without the carny ever spawning
+  // (the DEV ?stage= jump) must still time out back to the wheel.
+  if (lost && now - lost > SLIDE_MS + LOSE_MS) goStage(0);
   const carnyParts = spawned.get(CARNY);
   if (carnyParts) {
     const laughing = lost && now - lost > SLIDE_MS;
@@ -635,10 +681,9 @@ requestAnimationFrame(function loop(now) {
     LEAN_ROT[0] = lean < 0 || lean > YAWN_LEAN_IN + YAWN_LEAN_HOLD + YAWN_LEAN_OUT ? 0
       : lean < YAWN_LEAN_IN + YAWN_LEAN_HOLD ? A.tween(lean, YAWN_LEAN_IN, 0, YAWN_LEAN, A.ease_in_out_sine)
       : A.tween(lean - YAWN_LEAN_IN - YAWN_LEAN_HOLD, YAWN_LEAN_OUT, YAWN_LEAN, 0, A.ease_in_quad);
-    MOUTH_ROT[0] = laughing ? A.tween(now, LAUGH_MS, 0, LAUGH_DEG,
+    MOUTH_ROT[0] = laughing ? A.tween(now, LAUGH_MS, LAUGH_OPEN, LAUGH_DEG,
       import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle, gaspAt)
       : now - gaspAt < 2 * GASP_MS ? A.tween(now, GASP_MS, 0, GASP_DEG, A.ease_out_quad, A.cycle, gaspAt) : 0;
-    if (lost && now - lost > SLIDE_MS + LOSE_MS) goStage(0);
     poseState(carnyParts, CARNY, ...(
       laughing ? A.timeline(now, CARNY_CALM, EYES_LAUGH, A.once, lost + SLIDE_MS)
       : now - yawnAt < YAWN_MS ? A.timeline(now, CARNY_CALM, YAWN, A.once, yawnAt)
@@ -671,13 +716,15 @@ requestAnimationFrame(function loop(now) {
   }
 
   E.clear();
-  if (now - dealAt > DEAL_MS) { dealAt = now; deal(); }
+  if (!lost && now - dealAt > DEAL_MS) { dealAt = now; deal(); }
   if (gun) drawGun(now);
   if (holes.length && aim) drawWhack(now);
   for (const o of objects) {
     // The gun flashes green until it is picked up: the one thing on this
     // stage the player has to find first.
-    const color = o === gun && !held && !lost && now / 400 & 1 ? 8 + EMISSIVE : o.color;
+    // A correct target flickers white (the moles' beat) before settling grey.
+    const color = o === gun && !held && !lost && now / 400 & 1 ? 8 + EMISSIVE
+      : now - o.hitAt < FLASH_MS && !((now - o.hitAt) / FLASH_BEAT & 1) ? 1 + EMISSIVE : o.color;
     if (title && o.e === UNICORN) {
       const state = UNICORN.s[title - 1];
       poseState(o.parts, UNICORN, state);
@@ -687,13 +734,12 @@ requestAnimationFrame(function loop(now) {
       continue;
     }
     o.bounce = Math.max(0, (o.bounce || 0) - dt * 3.5);
-    const s = 1 + 0.25 * Math.sin(o.bounce * Math.PI);
     const spin = hash(o.place.m41 + o.place.m42) < 0.5 ? now / STAR_RATE : -now / STAR_RATE;
     const place = o === carny && lost && carnyTo
       ? DOMMatrix.fromFloat64Array(o.place.toFloat64Array().map((v, i) =>
           A.tween(now, SLIDE_MS, v, carnyTo[i], A.ease_in_out_quad, A.once, lost)))
       : title && o.e === STAR ? o.place.rotate(0, spin, 0)
-      : o.place.scale(s, s, s);
+      : o.place.scale(...squash(1 - o.bounce));
     drawEntity(E, o.parts, place, color);
   }
 
@@ -702,7 +748,8 @@ requestAnimationFrame(function loop(now) {
   H.clear();
   if (title) drawTitle();
   if (timer) drawTimer(now);
-  if (!held) drawAim();
+  if (lost && (now - lost) / BLINK_MS < BLINKS * 2 && !((now - lost) / BLINK_MS & 1)) hudRect(0, 0, hudW, hudH, RED);
+  if (!held && !holes.length) drawAim();
 
   if (import.meta.env.DEV && DEBUG) {
     dbgFrames++;
@@ -723,3 +770,10 @@ requestAnimationFrame(function loop(now) {
 });
 
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('win')) loadStage(WIN_STAGE);
+// ?stage=N jumps straight to STAGES[N] (1 = water gun, 2 = whack-a-mole),
+// skipping the intro and the wheel; ?stage=2&prize=6 picks the colour too.
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('stage')) {
+  const q = new URLSearchParams(location.search);
+  prize = +(q.get('prize') ?? RAINBOW[0]);
+  loadStage(+q.get('stage'));
+}
