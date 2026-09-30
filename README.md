@@ -13,3 +13,7 @@ You can play the ever evolving Director's Cut of the game in a browser [here](ht
 - Used my original WebGL2 renderer, but combined tricks from Xem's amazing [W](https://xem.github.io/W/) micro WebGL2 framework
 - Gruber's [SFX Pack](https://www.lexaloffle.com/bbs/?tid=34367) was a starting point for sounds
 - Cody Eberson's [pico8 music player](https://github.com/codyebberson/pico8-music) for playing the sounds
+
+## AI Use
+
+I did the programming of the game myself but I did make use of Claude for the Blender tools I had created for the contest (mostly to improve the UI and some math stuff that was beyond me), to help track kb use, so I always knew what was costing me the most kb's (I'm looking at you mesh_torus, LOL) and also to help me git push (or is it pull?) as my knowledge of all the git stuff is, well, let's just say, not good at the start of all this, hehe
