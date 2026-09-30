@@ -8,12 +8,17 @@
 // VARIETY, not object count.
 
 import { STRIDE } from './pico.js';
+import frag from './shaders/model.frag?raw';
+import vert from './shaders/model.vert?raw';
 
 // Atlas tile size in texels that `draw`'s `uv.tile` assumes when a part does
 // not override it.
 export const DEFAULT_TILE_SIZE = 16;
 
-export function createEngine(canvas, vertSrc, fragSrc) {
+// One engine per canvas, each with its own upload of the parsed picoCAD
+// model's textures. An `overlay` engine (the HUD) clears to transparent and
+// skips depth testing, so later draws simply paint over earlier ones.
+export function createEngine(canvas, model, overlay) {
   // antialias off: MSAA would blend colors along polygon edges inside the
   // low-res buffer, softening the chunky-pixel look
   const gl = canvas.getContext('webgl2', { antialias: false });
@@ -29,8 +34,8 @@ export function createEngine(canvas, vertSrc, fragSrc) {
     return s;
   };
   const prog = gl.createProgram();
-  gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertSrc));
-  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragSrc));
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, vert));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, frag));
   gl.linkProgram(prog);
   if (import.meta.env.DEV && !gl.getProgramParameter(prog, gl.LINK_STATUS))
     throw new Error(gl.getProgramInfoLog(prog));
@@ -45,59 +50,48 @@ export function createEngine(canvas, vertSrc, fragSrc) {
   const IFLOATS = 24;
   const meshes = [];   // every mesh ever built — flush() walks this
 
-  gl.enable(gl.DEPTH_TEST);
-  // Culling is disabled by default. Keep it that way: picoCAD faces are
-  // double-sided and the fragment shader flips their back-face normals.
-
   // --- textures ---
-  let texW, texH;
   const makeTex = (unit, internal, format, w, h, data) => {
-    const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + unit);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
     gl.texImage2D(gl.TEXTURE_2D, 0, internal, w, h, 0, format, gl.UNSIGNED_BYTE, data);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   };
+  // uv.tile rects are computed against the model texture's dimensions
+  const { width: texW, height: texH, pixels } = model.texture;
+  makeTex(0, gl.R8, gl.RED, texW, texH, pixels);
+  makeTex(1, gl.RGB8, gl.RGB, 16, 3, model.palette);
+  // Samplers default to texture unit 0, so only the palette needs setting.
+  gl.uniform1i(u('u_paletteTexture'), 1);
+  gl.uniform1f(u('u_transparentColor'), model.transparentColor);
+
+  // Culling is disabled by default. Keep it that way: picoCAD faces are
+  // double-sided and the fragment shader flips their back-face normals.
+  if (overlay) gl.clearColor(0, 0, 0, 0);
+  else {
+    gl.enable(gl.DEPTH_TEST);
+    // The background is a palette SLOT: clear to whatever colour it holds.
+    const c = model.palette, bg = model.bg * 3;
+    gl.clearColor(c[bg] / 255, c[bg + 1] / 255, c[bg + 2] / 255, 1);
+  }
 
   const E = {
-    gl,
-
-    // Upload the parsed picoCAD model's textures and static uniforms
-    setModel(model) {
-      const t = model.texture;
-      texW = t.width;    // uv.tile rects are computed against
-      texH = t.height;   // the model texture's dimensions
-      makeTex(0, gl.R8, gl.RED, texW, texH, t.pixels);
-      makeTex(1, gl.RGB8, gl.RGB, 16, 3, model.palette);
-      // Samplers default to texture unit 0, so only the palette needs setting.
-      gl.uniform1i(u('u_paletteTexture'), 1);
-      gl.uniform1f(u('u_transparentColor'), model.transparentColor);
-      // Every stage uses the model's palette; upload it once per engine.
-      const bytes = model.palette, bg = model.bg;
-      gl.clearColor(bytes[bg * 3] / 255, bytes[bg * 3 + 1] / 255, bytes[bg * 3 + 2] / 255, 1);
-    },
-
     // Build a VAO from parser output {data}, plus the AABB that
     // entity.js's worldBounds unions for click-picking and stage framing
     // (position = floats 0-2 of each vertex).
     mesh({ data }) {
-      const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
-      let u0 = Infinity, v0 = Infinity, u1 = -Infinity, v1 = -Infinity;
-      for (let i = 0; i < data.length; i += STRIDE) {
-        for (let k = 0; k < 3; k++) {
-          if (data[i + k] < min[k]) min[k] = data[i + k];
-          if (data[i + k] > max[k]) max[k] = data[i + k];
-        }
-        // uv at floats 6,7 — the mesh's own patch of atlas, the source rect
-        // a per-instance retile maps out of
-        if (data[i + 6] < u0) u0 = data[i + 6];
-        if (data[i + 6] > u1) u1 = data[i + 6];
-        if (data[i + 7] < v0) v0 = data[i + 7];
-        if (data[i + 7] > v1) v1 = data[i + 7];
-      }
+      // Per-attribute bounds in one pass: floats 0-2 give the position AABB,
+      // floats 6-7 the mesh's own patch of atlas (the source rect a
+      // per-instance retile maps out of). The rest are computed and ignored.
+      const min = Array(STRIDE).fill(Infinity), max = min.map(v => -v);
+      data.forEach((v, i) => {
+        const k = i % STRIDE;
+        if (v < min[k]) min[k] = v;
+        if (v > max[k]) max[k] = v;
+      });
       const vao = gl.createVertexArray();
       gl.bindVertexArray(vao);
       gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
@@ -122,7 +116,7 @@ export function createEngine(canvas, vertSrc, fragSrc) {
       }
 
       const mesh = { vao, ivbo, count: data.length / STRIDE, min, max, inst: [],
-        uvSrc: u0 > u1 ? [0, 0, 1, 1] : [u0, v0, u1 - u0, v1 - v0] };
+        uvSrc: [min[6], min[7], max[6] - min[6], max[7] - min[7]] };
       meshes.push(mesh);
       return mesh;
     },

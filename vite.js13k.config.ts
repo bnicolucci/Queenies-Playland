@@ -34,7 +34,7 @@ const MANGLE_PROPS = new RegExp('^(' + [
     'mesh', 'pos', 'rot', 'color', 'parent', 'uv', 'local', 'tile', 'rect',
     // engine mesh records and instancing
     'inst', 'vao', 'ivbo', 'count', 'palette', 'pixels', 'texture', 'objects',
-    'draw', 'flush', 'setModel',
+    'draw', 'flush',
     // camera
     'at', 'yaw', 'pitch', 'dist', 'fov', 'shake', 'jx', 'jy', 'update', 'view',
     // game objects (main.js)

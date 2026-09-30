@@ -1,7 +1,9 @@
 ﻿// Pure parser/compact-format and fixed-volume audio checks; no browser needed.
 import assert from 'node:assert/strict';
 import { parsePicoCAD, STRIDE, TEX_W } from '../../src/pico.js';
-import { renderSfx, SOUNDS } from '../../src/sfx.js';
+import * as SFX from '../../src/sfx.js';
+const { renderSfx } = SFX;
+const SOUNDS = Object.values(SFX).filter(v => typeof v === 'string');
 import { tryEncodeCompact } from '../vite/picocad_compact.ts';
 const raw=await Bun.file('src/assets/model.txt').text();
 const model=JSON.parse(raw);

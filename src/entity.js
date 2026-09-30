@@ -44,16 +44,14 @@ export function spawnEntity(blueprint, meshByName) {
 }
 
 // A state is [visibility mask, sparse overrides]. Each override is
-// [part index, pos, rot, scale], with 0 standing for an unchanged vector.
-// Missing fields inherit the blueprint. Keeping the result as one TRS lets any
-// non-uniformly scaled part rotate without manufacturing shear.
-// The three TRS fields in `trs` order, each falling back to its identity when
-// neither the state nor the blueprint names it. An override is
-// [partIndex, pos, rot, scale], so field k reads override slot k + 1 -- the one
-// place that offset is spelled out. Read with dot access, never `p['pos']`:
-// the pack renames these keys (MANGLE_PROPS in vite.js13k.config.ts) and a
-// string would go on asking for the old name -- every posed part silently
-// snapped to identity the first time this was a table of strings.
+// [part index, pos, rot, scale], with 0 standing for an unchanged vector, so
+// field k of `trs` reads override slot k + 1. Anything a state leaves out
+// inherits the blueprint, then the identity. Keeping the result as one TRS lets
+// any non-uniformly scaled part rotate without manufacturing shear.
+// Read the fields with dot access, never `p['pos']`: the pack renames these
+// keys (MANGLE_PROPS in vite.js13k.config.ts) and a string would go on asking
+// for the old name -- every posed part silently snapped to identity the first
+// time this was a table of strings.
 const poseFields = p => [p.pos || [0, 0, 0], p.rot || [0, 0, 0], p.scale || [1, 1, 1]];
 // Zero's missing indexed properties fall back below without allocating an array.
 const poseDelta = (state, part) => state[1].find(d => d[0] === part) || 0;

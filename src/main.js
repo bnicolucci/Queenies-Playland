@@ -7,45 +7,40 @@ import { CARNY, COLOR_WHEEL, CROSS_HAIR, EYE_COMPLEX, MALLET, MARK, MOLE, STAR, 
 import { drawEntity, poseState, spawnEntity, trs, worldBounds } from './entity.js';
 import { GAME_VIEW } from './game_view.js';
 import { parsePicoCAD, TEX_W } from './pico.js';
-import { bounce_lite, buzzer, carnysound, playSfx, SOUNDS, stopSfx, tick, water_spray, whack, wheel_rotate } from './sfx.js';
-import frag from './shaders/model.frag?raw';
-import vert from './shaders/model.vert?raw';
+import { bounce_lite, buzzer, carnysound, chime, circus, playSfx, stopSfx, tick, water_spray, whack, wheel_rotate, whoosh, wipe } from './sfx.js';
 import { COLOR_CHOOSER, INTRO, STAGE_1, STAGE_2 } from './stages.js';
 
 const DEBUG = false;
 
-// The carny's face is one pose state per expression, each carrying the mouth
-// override (MOUTH_ROT is written per frame) plus one of EYE_COMPLEX's authored
-// eye states re-based onto the carny's two inlined eyes: eye part k lives at
-// CARNY[10 + k] (right) and CARNY[18 + k] (left). The mouth rides in EVERY
-// state so tweening between two of them never drags it back to the blueprint.
-// MOUTH_ROT and LEAN_ROT are written per frame and referenced from EVERY
-// state, so a face tween can never drag them back to the blueprint. The
-// lean is on the body root (part 0, which every other part hangs off), so
-// the whole carny tips; negative is back, away from the wheel-stage camera.
+// The carny's face is one pose state per expression: one of EYE_COMPLEX's
+// authored eye states re-based onto the carny's two inlined eyes (eye part k
+// lives at CARNY[10 + k] right, CARNY[18 + k] left), plus MOUTH_ROT and
+// LEAN_ROT. Those two are written per frame and referenced from EVERY state,
+// so a face tween can never drag them back to the blueprint. The lean is on
+// the body root (part 0, which every other part hangs off), so the whole carny
+// tips; negative is back, away from the wheel-stage camera.
 const MOUTH_ROT = [0, 0, 0], LEAN_ROT = [0, 0, 0];
 const carnyFace = (eyes, mouth = MOUTH_ROT) => [-1, [[3, 0, mouth, 0], [0, 0, LEAN_ROT, 0],
   ...(eyes < 0 ? [] : EYE_COMPLEX.s[eyes][1].flatMap(([k, ...v]) => [[10 + k, ...v], [18 + k, ...v]]))]];
 const CARNY_CALM = carnyFace(-1), CARNY_SHUT = carnyFace(0), CARNY_ANGRY = carnyFace(1);
-// The yawn: eyes shut and mouth open YAWN_MOUTH degrees, on the face
-// timeline below. The lean runs on its own clock (see the carny block in the
-// frame loop): it starts YAWN_LEAN_DELAY after the mouth, eases in over
-// YAWN_LEAN_IN, holds, and eases back over YAWN_LEAN_OUT, with its own eases.
-const YAWN_MOUTH = -24, YAWN_LEAN = -16;
-const YAWN_LEAN_DELAY = 100, YAWN_LEAN_IN = 500, YAWN_LEAN_HOLD = 650, YAWN_LEAN_OUT = 400;
-const CARNY_YAWN = carnyFace(0, [YAWN_MOUTH, 0, 0]);
-// timeline() steps: [state, ms to get there, ms to hold]. Blink repeats;
-// the other two play once from their trigger and park on the last state.
+// timeline() steps: [state, ms to get there, ms to hold, ease?]. Blink
+// repeats; the others play once from their trigger and park on the last state.
 const EYES_BLINK = [[CARNY_SHUT, 80, 60], [CARNY_CALM, 120, 3300]];
 const EYES_SHOT = [[CARNY_ANGRY, 60, 340], [CARNY_CALM, 200, 0]], EYES_SHOT_MS = 600;
 const EYES_LAUGH = [[CARNY_SHUT, 150, 1e9]];
 // On the wheel stage, YAWN_AFTER ms without a click starts a yawn, and
 // another every YAWN_EVERY while nobody clicks. The sound is the carny's
 // usual one stretched to YAWN_SECONDS, which also drops its pitch.
-// Each step is [state, ms to get there, ms to hold, ease]: a slow stretch
-// open, a hold, then a quicker snap shut.
-const YAWN = [[CARNY_YAWN, 500, 700, A.ease_in_out_sine], [CARNY_CALM, 400, 0, A.ease_in_quad]], YAWN_MS = 1600;
+// The face: eyes shut and a slow stretch of the mouth open to YAWN_MOUTH
+// degrees, a hold, then a quicker snap shut.
+const YAWN_MOUTH = -24;
+const YAWN = [[carnyFace(0, [YAWN_MOUTH, 0, 0]), 500, 700, A.ease_in_out_sine], [CARNY_CALM, 400, 0, A.ease_in_quad]], YAWN_MS = 1600;
 const YAWN_AFTER = 2000, YAWN_EVERY = 5000, YAWN_SECONDS = 1.2;
+// The lean runs on its own timeline of plain numbers (timeline() never looks
+// inside its states), YAWN_LEAN_DELAY behind the mouth: ease back to YAWN_LEAN
+// degrees, hold, and ease upright again.
+const YAWN_LEAN_DELAY = 100;
+const YAWN_LEAN = [[-16, 500, 650, A.ease_in_out_sine], [0, 400, 0, A.ease_in_quad]];
 let yawnAt = 0;
 
 const WHEEL_PIVOT = 17;
@@ -87,7 +82,6 @@ if (import.meta.env.DEV) {
   }
 }
 
-
 const topWedge = a => {
   let best = 999, hit;
   for (const p of WEDGES) {
@@ -100,16 +94,9 @@ const topWedge = a => {
 let wheelHit = 0, wheelFrom = 0, wheelTo = 0, wheelColor = -1, wheelSpin = 0, bounceSpin = 0, wheel;
 let prize = -1, wheelChosenAt = 0;
 const won = [];
-const stopWheel = () => {
-  wheelHit = performance.now();
-  wheelFrom = -wheelHit * WHEEL_RATE;
-  [, wheelTo] = topWedge(wheelFrom - WHEEL_RATE * WHEEL_STOP / 2);
-};
 
 const COLOR_NAMES = { 1: 'WHITE', 2: 'YELLOW', 4: 'ORANGE', 6: 'RED', 8: 'GREEN', 10: 'BLUE', 12: 'INDIGO', 14: 'PURPLE' };
 const RAINBOW = [6, 5, 4, 2, 7, 10, 13], FRAY = 44, SPREAD = 64, SKEW = 15;
-
-let EASE = 'ease_out_quad';
 
 const canvas = document.querySelector('canvas');
 const hudCanvas = document.querySelector('#hud');
@@ -142,13 +129,9 @@ for (let b = 0; b < BANDS.length; b++)
           model.texture.pixels[(bandY(b) + (i >> 4) * 8 + r) * TEX_W + (i & 15) * 8 + c] = BANDS[b];
     }
 
-const E = createEngine(canvas, vert, frag);
-const H = createEngine(hudCanvas, vert, frag);
+const E = createEngine(canvas, model);
+const H = createEngine(hudCanvas, model, true);
 if (import.meta.env.DEV) window.E = E;
-E.setModel(model);
-H.setModel(model);
-H.gl.disable(H.gl.DEPTH_TEST);
-H.gl.clearColor(0, 0, 0, 0);
 
 const MESH = Object.fromEntries(model.objects.map(o => [o.name, E.mesh(o)]));
 const glyphQuad = (() => {
@@ -220,7 +203,7 @@ const splash = (o, now) => {
   hitAt = now;
   if (o.color === prize) {
     o.color = 15; o.t = 0; o.bounce = 1; o.hitAt = now;
-    playSfx(SOUNDS[TAGS.target[0]]);
+    playSfx(chime);
     if (!objects.some(o => o.t === 'target')) winStage();
   } else {
     miss();
@@ -328,8 +311,6 @@ const setAim = e => {
   }
 };
 canvas.addEventListener('pointermove', setAim);
-canvas.addEventListener('pointerdown', setAim);
-canvas.addEventListener('pointerdown', () => { spraying = held; });
 const MALLET_Y = 1, MALLET_H = 1.5, MALLET_REST = -90, MALLET_STRIKE = 90, MALLET_YAW = 30, WHACK_MS = 260;
 const MOLE_DOWN = -2, MOLE_UP = -0.5;
 const MOLE_MS = 1500, MOLE_RISE = 180, MOLE_ODDS = 0.35;
@@ -351,7 +332,10 @@ const moleColor = (i, now) => {
   return hash(i * 7 + k) < 1 / 3 ? prize : others[hash(i * 3 + k) * others.length | 0];
 };
 const paintMole = (parts, c) => parts.forEach((p, j) => MOLE[j].color === 4 && (p.color = c));
-canvas.addEventListener('pointerdown', () => {
+// Press: re-aim, start spraying if the gun is already held, swing the mallet.
+canvas.addEventListener('pointerdown', e => {
+  setAim(e);
+  spraying = held;
   if (holes.length && !lost) { whackAt = performance.now(); stageAt ||= whackAt; struck = 0; playSfx(whack); }
 });
 const drawWhack = now => {
@@ -381,7 +365,7 @@ const drawWhack = now => {
     const i = holes.indexOf(hole);
     if (up(i, now) > 0.5 && off(hole) < HIT_R && struckAt[i] !== slotOf(i, now)[0]) {
       if (moleColor(i, now) === prize) {
-        struckAt[i] = slotOf(i, now)[0]; flashAt[i] = now; flashBad[i] = false; playSfx(SOUNDS[TAGS.target[0]]);
+        struckAt[i] = slotOf(i, now)[0]; flashAt[i] = now; flashBad[i] = false; playSfx(chime);
         if (++hits >= need) winStage();
       } else { flashAt[i] = now; flashBad[i] = true; miss(); }
     }
@@ -398,20 +382,12 @@ const drawWhack = now => {
   drawEntity(E, malletParts, m);
 };
 addEventListener('pointerup', () => { spraying = 0; });
-const drawAim = () =>
-  hudRect(aim[0] - 8, aim[1] - 8, 16, 16, -1, { tile: { u: 1, v: 1 } });
-
-const TAGS = {
-  bonus: [0, 0],
-  enemy: [1, 4],
-  target: [0, 0],
-  player: 0,
-};
 
 const spawned = new Map();
 
 const STAGES = [COLOR_CHOOSER, STAGE_1, STAGE_2];
 let stageIndex = 0, lastStage = 0, objects = [], swipe = 0, nextStage = -1;
+// Rough scene size: sets the far plane and bounds the DEV orbit zoom.
 const radius = 10;
 
 const findObject = blueprint => objects.find(o => o.e === blueprint);
@@ -428,8 +404,7 @@ const loadPlacements = stage => {
     if (it.e.s) parts = spawnEntity(it.e, MESH);
     else if (!(parts = spawned.get(it.e)))
       spawned.set(it.e, parts = spawnEntity(it.e, MESH));
-    const place = trs(it.p, it.r, it.s);
-    const t = it.t ?? it.e.t;
+    const place = trs(it.p, it.r, it.s), t = it.e.t;
     return { e: it.e, parts, place, t, color: it.c ?? -1, n: t === 'target' ? targetN++ : 0, ...worldBounds(parts, place) };
   });
   if (targetN || stage.some(it => it.e === WHACKA)) need = FIRST + visits++;
@@ -456,24 +431,28 @@ const loadPlacements = stage => {
   sprayLoop = stopSfx(sprayLoop);
   if (import.meta.env.DEV)
     for (const it of stage) {
-      const t = it.t ?? it.e.t;
-      if (t && !(t in TAGS)) console.warn(`tag '${t}' is not in TAGS -- that placement is scenery`);
+      const t = it.e.t;
+      if (t && !['bonus', 'enemy', 'target', 'player'].includes(t)) console.warn(`tag '${t}' is not one main.js knows -- that placement is scenery`);
       if (it.b) console.warn(`b: ${it.b} on a placement -- palette banks are parked, it draws in the stage palette`);
     }
-
 };
 
+// The circus loop plays on the win screen only (for now), and since nothing
+// leaves that screen it never needs stopping. MUSIC_GAIN keeps it under the
+// effects: at 1 its RMS is 3x the chime's.
+const MUSIC_GAIN = 0.4;
 const loadStage = i => {
   if (title === 2) return;
   title = i === WIN_STAGE ? 2 : 0;
-  stageIndex = (i + STAGES.length) % STAGES.length;
+  if (title) playSfx(circus, 1, MUSIC_GAIN);
+  stageIndex = i % STAGES.length;
   if (!title && stageIndex) lastStage = stageIndex;
   loadPlacements(title ? INTRO : STAGES[stageIndex]);
 };
 loadPlacements(INTRO);
 
 const goStage = i => {
-  if (!swipe && title !== 2) { swipe = performance.now(); nextStage = i; cam.shake = 0; playSfx(SOUNDS[2]); }
+  if (!swipe && title !== 2) { swipe = performance.now(); nextStage = i; cam.shake = 0; playSfx(wipe); }
 };
 if (import.meta.env.DEV) {
   window.transitionState = () => [objects.length, !!swipe, nextStage];
@@ -487,20 +466,14 @@ if (import.meta.env.DEV) {
   Object.defineProperty(window, 'projView', { get: () => projView });
 }
 
-let DROP = 16, ARC = 44, title = 1;
+// title: 1 = the intro, 2 = the win screen, 0 = playing. The title text sits
+// TITLE_DROP small-glyph heights down; the top line bends on a TITLE_ARC
+// radius (in small-glyph pixels).
+let title = 1;
+const TITLE_DROP = 16, TITLE_ARC = 44;
 const STAR_RATE = 60, NOD_MS = 400;
-if (import.meta.env.DEV) {
-  Object.defineProperty(window, 'ARC', { get: () => ARC, set: v => ARC = v });
-  Object.defineProperty(window, 'DROP', { get: () => DROP, set: v => DROP = v });
-  const eases = Object.keys(A).filter(k => k === 'linear' || k.startsWith('ease'));
-  addEventListener('keydown', e => {
-    if (e.key === '[') console.log('arc:', ARC -= 1);
-    if (e.key === ']') console.log('arc:', ARC += 1);
-    if (e.key === 'c') console.log('ease:', EASE = eases[(eases.indexOf(EASE) + 1) % eases.length]);
-    if (e.key === 'p') shot = 1;
-  });
-}
 let shot = 0;
+if (import.meta.env.DEV) addEventListener('keydown', e => { if (e.key === 'p') shot = 1; });
 // WebGL buffers are cleared after present (no preserveDrawingBuffer), so the grab
 // must run at the end of the frame while both canvases still hold this frame.
 const saveShot = () => {
@@ -529,17 +502,21 @@ const drawTitle = () => {
     }
     drawText(txt, x, y, s, b, r);
   };
-  const y = DROP * small | 0;
+  const y = TITLE_DROP * small | 0;
   if (title === 2) line('YOU WIN!', big, YELLOW, y);
   else {
-    line("QUEENIE'S", small, YELLOW, y, ARC * small);
+    line("QUEENIE'S", small, YELLOW, y, TITLE_ARC * small);
     line('PLAYLAND', big, ORANGE, y + 9 * small);
   }
 };
+// Stop the wheel: ease out from where it is now onto the nearest wedge not
+// yet won, about half a free-spin's worth of travel ahead.
 const spinDown = () => {
   if (wheelHit || swipe) return;
-  playSfx(SOUNDS[TAGS.bonus[0]]);
-  stopWheel();
+  playSfx(chime);
+  wheelHit = performance.now();
+  wheelFrom = -wheelHit * WHEEL_RATE;
+  [, wheelTo] = topWedge(wheelFrom - WHEEL_RATE * WHEEL_STOP / 2);
 };
 addEventListener('keydown', () => {
   if (wheel) spinDown();
@@ -569,7 +546,6 @@ if (import.meta.env.DEV && location.search.includes('orbit')) {
   }, { passive: false });
 }
 
-let clicks = 0;
 const ray = (x, y) => {
   const inv = projView.inverse();
   const nx = x * 2 - 1, ny = 1 - y * 2;
@@ -577,8 +553,8 @@ const ray = (x, y) => {
     const p = inv.transformPoint(new DOMPoint(nx, ny, w, 1));
     return [p.x / p.w, p.y / p.w, p.z / p.w];
   };
-  const a = un(-1), b = un(1);
-  return [a, [b[0] - a[0], b[1] - a[1], b[2] - a[2]]];
+  const a = un(-1);
+  return [a, un(1).map((v, k) => v - a[k])];
 };
 function pick(e) {
   const [x, y] = pointer(e), [a, dir] = ray(x, y);
@@ -601,18 +577,17 @@ function pick(e) {
     }
     if (t0 <= t1 && t0 < best) { best = t0; hit = o; }
   }
-  if (hit && hit === gun && !lost) { held = 1; grab = [x, y, ...GUN_ROT]; stageAt ||= performance.now(); return; }
-  const act = hit && TAGS[hit.t];
-  if (act) {
-    const o = hit;
-    const wrong = o.t === 'target' && o.color !== prize;
-    const feedback = wrong ? TAGS.enemy : act;
-    playSfx(wrong ? buzzer : SOUNDS[feedback[0]]);
-    o.bounce = 1;
-    cam.shake = feedback[1];
-    if (wrong) {
-      clicks = Math.max(0, clicks - 1);
-    } else if (++clicks % 10 === 0 && stageIndex !== 0) goStage(stageIndex + 1);
+  if (gun && hit === gun && !lost) { held = 1; grab = [x, y, ...GUN_ROT]; stageAt ||= performance.now(); return; }
+  // Anything tagged bounces when clicked. A right target (or the verifier's
+  // 'bonus') chimes; the carny ('enemy') whooshes and a wrong target buzzes,
+  // and both of those shake the view. A hit target's tag is 0: inert.
+  // Clicks are feedback only: the stage is won with the gun, never by clicking
+  // (ten clicks used to skip the stage, a leftover of the pre-gun click game).
+  if (hit?.t) {
+    const wrong = hit.t === 'target' && hit.color !== prize, bad = wrong || hit.t === 'enemy';
+    playSfx(wrong ? buzzer : bad ? whoosh : chime);
+    hit.bounce = 1;
+    cam.shake = bad ? 4 : 0;
   }
 }
 
@@ -675,14 +650,11 @@ requestAnimationFrame(function loop(now) {
     const laughing = lost && now - lost > SLIDE_MS;
     if (laughing) gasp(now, LAUGH_MS);
     if (wheel && !wheelHit && now - yawnAt > YAWN_EVERY) { yawnAt = now; playSfx(carnysound, 0, 1, YAWN_SECONDS); }
-    // The lean's own clock, offset from the yawn's. tween's default `once`
-    // mode clamps, so the in-tween holds at YAWN_LEAN by itself.
-    const lean = now - yawnAt - YAWN_LEAN_DELAY;
-    LEAN_ROT[0] = lean < 0 || lean > YAWN_LEAN_IN + YAWN_LEAN_HOLD + YAWN_LEAN_OUT ? 0
-      : lean < YAWN_LEAN_IN + YAWN_LEAN_HOLD ? A.tween(lean, YAWN_LEAN_IN, 0, YAWN_LEAN, A.ease_in_out_sine)
-      : A.tween(lean - YAWN_LEAN_IN - YAWN_LEAN_HOLD, YAWN_LEAN_OUT, YAWN_LEAN, 0, A.ease_in_quad);
+    // `once` clamps: before the first yawn and after each one, it rests at 0.
+    const [a, b, t] = A.timeline(now, 0, YAWN_LEAN, A.once, yawnAt + YAWN_LEAN_DELAY);
+    LEAN_ROT[0] = A.mix(a, b, t);
     MOUTH_ROT[0] = laughing ? A.tween(now, LAUGH_MS, LAUGH_OPEN, LAUGH_DEG,
-      import.meta.env.DEV ? A[EASE] : A.ease_out_quad, A.cycle, gaspAt)
+      A.ease_out_quad, A.cycle, gaspAt)
       : now - gaspAt < 2 * GASP_MS ? A.tween(now, GASP_MS, 0, GASP_DEG, A.ease_out_quad, A.cycle, gaspAt) : 0;
     poseState(carnyParts, CARNY, ...(
       laughing ? A.timeline(now, CARNY_CALM, EYES_LAUGH, A.once, lost + SLIDE_MS)
@@ -718,7 +690,7 @@ requestAnimationFrame(function loop(now) {
   E.clear();
   if (!lost && now - dealAt > DEAL_MS) { dealAt = now; deal(); }
   if (gun) drawGun(now);
-  if (holes.length && aim) drawWhack(now);
+  if (holes.length) drawWhack(now);
   for (const o of objects) {
     // The gun flashes green until it is picked up: the one thing on this
     // stage the player has to find first.
@@ -749,7 +721,9 @@ requestAnimationFrame(function loop(now) {
   if (title) drawTitle();
   if (timer) drawTimer(now);
   if (lost && (now - lost) / BLINK_MS < BLINKS * 2 && !((now - lost) / BLINK_MS & 1)) hudRect(0, 0, hudW, hudH, RED);
-  if (!held && !holes.length) drawAim();
+  // The pointer's crosshair: gone while the gun is held (the stream's own
+  // mark takes over) and on whack-a-mole (the mallet's mark on the rims does).
+  if (!held && !holes.length) hudRect(aim[0] - 8, aim[1] - 8, 16, 16, -1, { tile: { u: 1, v: 1 } });
 
   if (import.meta.env.DEV && DEBUG) {
     dbgFrames++;
@@ -769,11 +743,14 @@ requestAnimationFrame(function loop(now) {
   if (import.meta.env.DEV && shot) saveShot();
 });
 
-if (import.meta.env.DEV && new URLSearchParams(location.search).has('win')) loadStage(WIN_STAGE);
-// ?stage=N jumps straight to STAGES[N] (1 = water gun, 2 = whack-a-mole),
-// skipping the intro and the wheel; ?stage=2&prize=6 picks the colour too.
-if (import.meta.env.DEV && new URLSearchParams(location.search).has('stage')) {
+// ?win shows the win screen. ?stage=N jumps straight to STAGES[N] (1 = water
+// gun, 2 = whack-a-mole), skipping the intro and the wheel; ?stage=2&prize=6
+// picks the colour too.
+if (import.meta.env.DEV) {
   const q = new URLSearchParams(location.search);
-  prize = +(q.get('prize') ?? RAINBOW[0]);
-  loadStage(+q.get('stage'));
+  if (q.has('win')) loadStage(WIN_STAGE);
+  if (q.has('stage')) {
+    prize = +(q.get('prize') ?? RAINBOW[0]);
+    loadStage(+q.get('stage'));
+  }
 }
